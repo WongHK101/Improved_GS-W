@@ -1,0 +1,43 @@
+# Datasets and local experiment outputs
+datasets/
+data/
+outputs/
+output/
+checkpoints/
+runs/
+logs/
+wandb/
+tensorboard/
+
+# Model/checkpoint artifacts
+*.pth
+*.pt
+*.ckpt
+
+# Build and Python cache
+build/
+dist/
+*.egg-info/
+__pycache__/
+*.pyc
+*.pyo
+
+# Large render/evaluation artifacts
+renders/
+gt/
+*.mp4
+*.avi
+*.mov
+
+# Local IDE/env/secrets
+.idea/
+.vscode/
+.env
+.env.*
+*.key
+*.pem
+*.token
+
+# OS files
+Thumbs.db
+.DS_Store
