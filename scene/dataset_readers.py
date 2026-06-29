@@ -25,6 +25,9 @@ from scene.gaussian_model import BasicPointCloud
 import pandas as pd
 import glob
 
+COLMAP_BINARY_FILES = ("images.bin", "cameras.bin")
+COLMAP_TEXT_FILES = ("images.txt", "cameras.txt")
+
 class CameraInfo(NamedTuple):
     uid: int
     R: np.array
@@ -67,6 +70,35 @@ def getNerfppNorm(cam_info):
 
     return {"translate": translate, "radius": radius}
 
+def has_colmap_sparse_model(sparse_path):
+    return (
+        all(os.path.exists(os.path.join(sparse_path, name)) for name in COLMAP_BINARY_FILES)
+        or all(os.path.exists(os.path.join(sparse_path, name)) for name in COLMAP_TEXT_FILES)
+    )
+
+def resolve_colmap_sparse_model_path(path, sparse_subdir=""):
+    candidates = []
+    if sparse_subdir:
+        explicit_path = sparse_subdir if os.path.isabs(sparse_subdir) else os.path.join(path, sparse_subdir)
+        candidates.append(("explicit", explicit_path))
+    candidates.extend([
+        ("sparse/0", os.path.join(path, "sparse", "0")),
+        ("sparse", os.path.join(path, "sparse")),
+    ])
+
+    available = [(label, sparse_path) for label, sparse_path in candidates if has_colmap_sparse_model(sparse_path)]
+    if sparse_subdir and not available:
+        raise FileNotFoundError(f"Explicit COLMAP sparse model path is invalid or incomplete: {explicit_path}")
+    if not available:
+        checked = ", ".join(sparse_path for _, sparse_path in candidates)
+        raise FileNotFoundError(f"No COLMAP sparse model found. Checked: {checked}")
+
+    selected_label, selected_path = available[0]
+    if len(available) > 1:
+        print("[COLMAP] Multiple sparse model candidates found: " + ", ".join(f"{label}={sparse_path}" for label, sparse_path in available))
+    print(f"[COLMAP] Using sparse model path ({selected_label}): {selected_path}")
+    return selected_path
+
 def readColmapCameras(cam_extrinsics, cam_intrinsics, images_folder):
     cam_infos = []
   
@@ -77,7 +109,7 @@ def readColmapCameras(cam_extrinsics, cam_intrinsics, images_folder):
         sys.stdout.flush()
 
         extr = cam_extrinsics[key]
-        intr = cam_intrinsics[extr.id]
+        intr = cam_intrinsics[extr.camera_id]
         height = intr.height
         width = intr.width
 
@@ -97,8 +129,10 @@ def readColmapCameras(cam_extrinsics, cam_intrinsics, images_folder):
         else:
             assert False, "Colmap camera model not handled: only undistorted datasets (PINHOLE or SIMPLE_PINHOLE cameras) supported!"
 
-        image_path = os.path.join(images_folder, os.path.basename(extr.name))
-        image_name = os.path.basename(image_path).split(".")[0]
+        image_path = os.path.join(images_folder, extr.name)
+        if not os.path.exists(image_path):
+            image_path = os.path.join(images_folder, os.path.basename(extr.name))
+        image_name = extr.name
         image = Image.open(image_path)        
 
         cam_info = CameraInfo(uid=uid, R=R, T=T, FovY=FovY, FovX=FovX, image=image,
@@ -132,15 +166,16 @@ def storePly(path, xyz, rgb):
     ply_data = PlyData([vertex_element])
     ply_data.write(path)
 
-def readColmapSceneInfo(path, images, eval, llffhold=8):
+def readColmapSceneInfo(path, images, eval, llffhold=8, sparse_subdir=""):
+    sparse_path = resolve_colmap_sparse_model_path(path, sparse_subdir)
     try:
-        cameras_extrinsic_file = os.path.join(path, "sparse", "images.bin")
-        cameras_intrinsic_file = os.path.join(path, "sparse", "cameras.bin")   
+        cameras_extrinsic_file = os.path.join(sparse_path, "images.bin")
+        cameras_intrinsic_file = os.path.join(sparse_path, "cameras.bin")
         cam_extrinsics = read_extrinsics_binary(cameras_extrinsic_file)     
         cam_intrinsics = read_intrinsics_binary(cameras_intrinsic_file)    
     except:
-        cameras_extrinsic_file = os.path.join(path, "sparse", "images.txt")
-        cameras_intrinsic_file = os.path.join(path, "sparse", "cameras.txt")
+        cameras_extrinsic_file = os.path.join(sparse_path, "images.txt")
+        cameras_intrinsic_file = os.path.join(sparse_path, "cameras.txt")
         cam_extrinsics = read_extrinsics_text(cameras_extrinsic_file)
         cam_intrinsics = read_intrinsics_text(cameras_intrinsic_file)
 
@@ -181,9 +216,9 @@ def readColmapSceneInfo(path, images, eval, llffhold=8):
 
     nerf_normalization = getNerfppNorm(train_cam_infos)
 
-    ply_path = os.path.join(path, "sparse/points3D.ply")
-    bin_path = os.path.join(path, "sparse/points3D.bin")
-    txt_path = os.path.join(path, "sparse/points3D.txt")
+    ply_path = os.path.join(sparse_path, "points3D.ply")
+    bin_path = os.path.join(sparse_path, "points3D.bin")
+    txt_path = os.path.join(sparse_path, "points3D.txt")
     if not os.path.exists(ply_path):
         print("Converting point3d.bin to .ply, will happen only the first time you open the scene.")
         try:
