@@ -1,17 +1,7 @@
-﻿# Commit History
-
-`	ext
-de8cc86 Record historical vs clean GS-W equivalence audit 07bdc17 Add GS-W equivalence audit tools 3f047b4 Clarify final Trackmobile leakage verification badc7e3 Record Trackmobile strict GS-W 30k baseline 4c71cf0 Document Trackmobile strict baseline protocol 804bd47 Add strict GS-W diagnostic evaluation tools d6d4661 Extend strict appearance invariance test to all held-out views 1327696 Add strict-safe GS-W test appearance modes 81494cf Add frozen full-image LLFF hold-8 split manifests 94a5ad1 Add rasterizer API compatibility regression test de34a4c Allow rendering speed smoke tests on small scenes bf6ad21 Support current rasterizer API during rendering
-`
-"@ | Set-Content -LiteralPath 'reports/gsw_equivalence_audit/COMMIT_HISTORY.md' -Encoding UTF8
- = git rev-list --left-right --count origin/main...main
- = git rev-parse origin/main
- = Get-Date -Format s
-@"
 # Push Status
 
-- Generated: 
-- HEAD before metadata commit: de8cc86744149c1aa23ea58c4889106cce86a071
-- origin/main before metadata commit: 
-- origin/main...main counts before metadata commit: 
-- Note: final post-push verification is recorded in the packaged PUSH_STATUS.md and final Codex response.
+- Generated: 2026-06-30T05:21:38
+- HEAD: 581618e8954af3c2f8de458841f56629fd9da897
+- origin/main: 581618e8954af3c2f8de458841f56629fd9da897
+- origin/main...main counts at generation time: 0	0
+- Final post-push verification should be `0 0`; see final Codex response for the verification after this metadata fix commit is pushed.
