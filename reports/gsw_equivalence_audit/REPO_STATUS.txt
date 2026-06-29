@@ -1,27 +1,42 @@
-## Clean repo status
+﻿## Clean repo status
+
+Generated: 2026-06-30T06:04:21
 
 ### git status --short --branch
+~~~text
 ## main...origin/main
+~~~
 
 ### git rev-parse --show-toplevel
+~~~text
 G:/WL3DGS/Improved_GS-W
+~~~
 
 ### git branch --show-current
+~~~text
 main
+~~~
 
 ### git rev-parse HEAD
-581618e8954af3c2f8de458841f56629fd9da897
+~~~text
+45b578cff0cf9311116b05ae72767c7814993bde
+~~~
 
 ### git submodule status --recursive
+~~~text
 
+~~~
 
 ### remote -v
+~~~text
 origin	https://github.com/WongHK101/Improved_GS-W.git (fetch)
 origin	https://github.com/WongHK101/Improved_GS-W.git (push)
+~~~
 
 ## Historical repo status
 
 ### git -C historical status --short --branch
+~~~text
 ## main...origin/main
  M gaussian_renderer/__init__.py
  M render.py
@@ -32,15 +47,17 @@ origin	https://github.com/WongHK101/Improved_GS-W.git (push)
 ?? net_modules/__pycache__/
 ?? scene/__pycache__/
 ?? utils/__pycache__/
+~~~
 
 ### historical HEAD
+~~~text
 fbe12be37cc0054296e2ef8631a6579b2a136ea7
+~~~
 
 ### historical diff --stat
-warning: in the working copy of 'gaussian_renderer/__init__.py', LF will be replaced by CRLF the next time Git touches it
-warning: in the working copy of 'render.py', LF will be replaced by CRLF the next time Git touches it
-warning: in the working copy of 'scene/dataset_readers.py', LF will be replaced by CRLF the next time Git touches it
+~~~text
  gaussian_renderer/__init__.py |  5 +++--
  render.py                     | 16 +++++++++++-----
  scene/dataset_readers.py      |  6 +++---
  3 files changed, 17 insertions(+), 10 deletions(-)
+~~~
