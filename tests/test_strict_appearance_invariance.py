@@ -52,6 +52,10 @@ def max_abs_diff(a, b):
     return float((a - b).abs().max().item())
 
 
+def mean_abs_diff(a, b):
+    return float((a - b).abs().mean().item())
+
+
 def main():
     from arguments import ModelParams, PipelineParams
     from arguments import args_init
@@ -61,6 +65,7 @@ def main():
     pipeline_params = PipelineParams(parser)
     parser.add_argument("--iteration", default=10, type=int)
     parser.add_argument("--output-json", type=Path)
+    parser.add_argument("--output-csv", type=Path)
     parser.add_argument("--mapping-csv", type=Path)
     parser.add_argument("--tolerance", default=1e-7, type=float)
     parser.add_argument("--legacy-min-diff", default=1e-6, type=float)
@@ -79,31 +84,74 @@ def main():
     gaussians.set_eval(True)
 
     train_views = scene.getTrainCameras()
-    test_camera = scene.getTestCameras()[0]
+    test_cameras = scene.getTestCameras()
     background = torch.tensor([0, 0, 0], dtype=torch.float32, device="cuda")
-    variants = {
-        "zero": mutate_camera_image(test_camera, "zero"),
-        "noise": mutate_camera_image(test_camera, "noise"),
-        "channel_swap": mutate_camera_image(test_camera, "channel_swap"),
-    }
 
     results = {}
+    rows = []
     errors = []
-    for mode in ["strict_intrinsic", "strict_nearest_train", "legacy_target_rgb"]:
-        base = render_once(test_camera, gaussians, pipeline, background, mode, train_views)
-        mode_results = {}
-        for variant_name, variant_camera in variants.items():
-            rendered = render_once(variant_camera, gaussians, pipeline, background, mode, train_views)
-            mode_results[variant_name] = max_abs_diff(base, rendered)
-        results[mode] = mode_results
+    legacy_unchanged_views = []
+    for test_camera in test_cameras:
+        variants = {
+            "zero": mutate_camera_image(test_camera, "zero"),
+            "noise": mutate_camera_image(test_camera, "noise"),
+            "channel_swap": mutate_camera_image(test_camera, "channel_swap"),
+        }
+        view_results = {}
+        for mode in ["strict_intrinsic", "strict_nearest_train", "legacy_target_rgb"]:
+            base = render_once(test_camera, gaussians, pipeline, background, mode, train_views)
+            mode_results = {}
+            for variant_name, variant_camera in variants.items():
+                rendered = render_once(variant_camera, gaussians, pipeline, background, mode, train_views)
+                max_diff = max_abs_diff(base, rendered)
+                mean_diff = mean_abs_diff(base, rendered)
+                mode_results[variant_name] = {
+                    "max_abs_diff": max_diff,
+                    "mean_abs_diff": mean_diff,
+                }
+                rows.append({
+                    "test_image": test_camera.image_name,
+                    "mode": mode,
+                    "perturbation": variant_name,
+                    "max_abs_diff": max_diff,
+                    "mean_abs_diff": mean_diff,
+                })
+            view_results[mode] = mode_results
+        results[test_camera.image_name] = view_results
 
-    for mode in ["strict_intrinsic", "strict_nearest_train"]:
-        for variant_name, diff in results[mode].items():
-            if diff > args.tolerance:
-                errors.append(f"{mode} changed under {variant_name}: {diff}")
-    legacy_changed = any(diff > args.legacy_min_diff for diff in results["legacy_target_rgb"].values())
+    for test_image, view_results in results.items():
+        for mode in ["strict_intrinsic", "strict_nearest_train"]:
+            for variant_name, diffs in view_results[mode].items():
+                if diffs["max_abs_diff"] > args.tolerance:
+                    errors.append(
+                        f"{mode} changed on {test_image} under {variant_name}: "
+                        f"{diffs['max_abs_diff']}"
+                    )
+        view_legacy_changed = any(
+            diffs["max_abs_diff"] > args.legacy_min_diff
+            for diffs in view_results["legacy_target_rgb"].values()
+        )
+        if not view_legacy_changed:
+            legacy_unchanged_views.append(test_image)
+
+    legacy_changed = len(legacy_unchanged_views) < len(test_cameras)
     if not legacy_changed:
-        errors.append(f"legacy_target_rgb did not change above {args.legacy_min_diff}")
+        errors.append(f"legacy_target_rgb did not change above {args.legacy_min_diff} for any held-out view")
+    if legacy_unchanged_views:
+        print(
+            "WARNING: legacy_target_rgb did not change above "
+            f"{args.legacy_min_diff} for views: {legacy_unchanged_views}"
+        )
+
+    if args.output_csv:
+        args.output_csv.parent.mkdir(parents=True, exist_ok=True)
+        with args.output_csv.open("w", newline="", encoding="utf-8") as handle:
+            writer = csv.DictWriter(
+                handle,
+                fieldnames=["test_image", "mode", "perturbation", "max_abs_diff", "mean_abs_diff"],
+            )
+            writer.writeheader()
+            writer.writerows(rows)
 
     mapping = nearest_train_appearance_sources(scene.getTestCameras(), train_views)
     mapping_rows = [
@@ -126,11 +174,12 @@ def main():
         "source_path": args.source_path,
         "iteration": args.iteration,
         "split_file": args.split_file,
-        "test_camera": test_camera.image_name,
-        "max_abs_diffs": results,
+        "test_cameras": [camera.image_name for camera in test_cameras],
+        "results": results,
         "strict_tolerance": args.tolerance,
         "legacy_min_diff": args.legacy_min_diff,
         "legacy_changed": legacy_changed,
+        "legacy_unchanged_views": legacy_unchanged_views,
         "nearest_train_mapping": mapping_rows,
         "errors": errors,
     }
