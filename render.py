@@ -130,7 +130,9 @@ def render_lego(model_path, name, iteration, views,view0, gaussians, pipeline, b
 
 def test_rendering_speed( views, gaussians, pipeline,background,use_cache=False):
     views=copy.deepcopy(views)
-    length=100
+    length=min(100, len(views))
+    if length == 0:
+        raise ValueError("Cannot test rendering speed without cameras.")
     # view=views[0]
     for idx in range(length):
         view=views[idx] 
@@ -148,7 +150,10 @@ def test_rendering_speed( views, gaussians, pipeline,background,use_cache=False)
         print(f"rendering speed:{avg_rendering_speed}s/image")
         return avg_rendering_speed
     else:
-        for i in range(100):
+        if len(views) < 2:
+            raise ValueError("Cache rendering speed test requires at least two cameras.")
+        length=min(100, len(views) - 1)
+        for i in range(length):
             views[i+1].image_height,views[i+1].image_width=view.image_height,view.image_width
         rendering = render(views[0], gaussians, pipeline, background,store_cache=True)["render"]
         start_time=time.time()
