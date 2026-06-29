@@ -1,0 +1,6 @@
+﻿Command: conda run -n 3dgs --no-capture-output python tools/audit/gsw_equivalence_audit.py
+
+Result:
+Setting up [LPIPS] perceptual loss: trunk [alex], v[0.1], spatial [off]
+Loading model from: D:\anaconda\envs\3dgs\lib\site-packages\lpips\weights\v0.1\alex.pth
+Wrote audit reports to G:\WL3DGS\Improved_GS-W\reports\gsw_equivalence_audit
