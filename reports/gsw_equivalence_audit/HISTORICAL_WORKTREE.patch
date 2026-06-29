@@ -1,0 +1,86 @@
+warning: in the working copy of 'gaussian_renderer/__init__.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'render.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'scene/dataset_readers.py', LF will be replaced by CRLF the next time Git touches it
+diff --git a/gaussian_renderer/__init__.py b/gaussian_renderer/__init__.py
+index 5f6438a..d2a66b2 100644
+--- a/gaussian_renderer/__init__.py
++++ b/gaussian_renderer/__init__.py
+@@ -59,7 +59,8 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor,
+         sh_degree=pc.active_sh_degree,                    #0,
+         campos=camera_center,            #3
+         prefiltered=False,
+-        debug=pipe.debug
++        debug=pipe.debug,
++        antialiasing=False
+     )
+ 
+     rasterizer = GaussianRasterizer(raster_settings=raster_settings)
+@@ -100,7 +101,7 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor,
+         
+ 
+     # Rasterize visible Gaussians to image, obtain their radii (on screen). 
+-    rendered_image, radii = rasterizer(
++    rendered_image, radii, _ = rasterizer(
+         means3D = means3D,       # [Npoint,3]
+         means2D = means2D,      #[Npoint,3]
+         shs = shs,              #[Npoint,16,3]
+diff --git a/render.py b/render.py
+index 3cd93e1..7345d30 100644
+--- a/render.py
++++ b/render.py
+@@ -130,7 +130,9 @@ def render_lego(model_path, name, iteration, views,view0, gaussians, pipeline, b
+ 
+ def test_rendering_speed( views, gaussians, pipeline,background,use_cache=False):
+     views=copy.deepcopy(views)
+-    length=100
++    length=min(100, len(views))
++    if length == 0:
++        return 0.0
+     # view=views[0]
+     for idx in range(length):
+         view=views[idx] 
+@@ -148,11 +150,15 @@ def test_rendering_speed( views, gaussians, pipeline,background,use_cache=False)
+         print(f"rendering speed:{avg_rendering_speed}s/image")
+         return avg_rendering_speed
+     else:
+-        for i in range(100):
+-            views[i+1].image_height,views[i+1].image_width=view.image_height,view.image_width
+-        rendering = render(views[0], gaussians, pipeline, background,store_cache=True)["render"]
++        length=min(100, len(views) - 1)
++        if length <= 0:
++            return 0.0
++        base_view = views[0]
++        for i in range(length):
++            views[i+1].image_height,views[i+1].image_width=base_view.image_height,base_view.image_width
++        rendering = render(base_view, gaussians, pipeline, background,store_cache=True)["render"]
+         start_time=time.time()
+-        rendering = render(view, gaussians, pipeline, background,store_cache=True)["render"]
++        rendering = render(base_view, gaussians, pipeline, background,store_cache=True)["render"]
+         #for idx, view in enumerate(tqdm(views[1:], desc="Rendering progress")):
+         for idx in tqdm(range(length), desc="Rendering progress"):
+             view=views[idx+1]
+diff --git a/scene/dataset_readers.py b/scene/dataset_readers.py
+index 8c77586..b11fe57 100644
+--- a/scene/dataset_readers.py
++++ b/scene/dataset_readers.py
+@@ -77,11 +77,11 @@ def readColmapCameras(cam_extrinsics, cam_intrinsics, images_folder):
+         sys.stdout.flush()
+ 
+         extr = cam_extrinsics[key]
+-        intr = cam_intrinsics[extr.id]
++        intr = cam_intrinsics[extr.camera_id]
+         height = intr.height
+         width = intr.width
+ 
+-        uid = intr.id
++        uid = extr.id
+         R = np.transpose(qvec2rotmat(extr.qvec))
+         T = np.array(extr.tvec)
+ 
+@@ -306,4 +306,4 @@ def add_perturbation(img, perturbation, seed):
+         img_np[..., :3] = np.clip(s*img_np[..., :3]+b, 0, 1)
+         img = Image.fromarray((255*img_np).astype(np.uint8))
+ 
+-    return img
+\ No newline at end of file
++    return img

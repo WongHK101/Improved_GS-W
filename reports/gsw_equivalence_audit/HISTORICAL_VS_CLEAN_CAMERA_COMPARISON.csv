@@ -1,0 +1,16 @@
+camera_id_equal,camera_params_max_abs_diff,clean_camera_id,clean_camera_model,clean_height,clean_image_id,clean_width,filename,historical_camera_id,historical_camera_model,historical_height,historical_image_id,historical_width,image_id_equal,num_points2d_clean,num_points2d_equal,num_points2d_hist,qvec_max_abs_diff,tvec_max_abs_diff
+True,0.0,1,PINHOLE,900,1,1600,0001.jpg,1,PINHOLE,900,1,1600,True,13127,True,13127,0.0,0.0
+True,0.0,1,PINHOLE,900,2,1600,0002.jpg,1,PINHOLE,900,2,1600,True,8313,True,8313,0.0,0.0
+True,0.0,1,PINHOLE,900,3,1600,0003.jpg,1,PINHOLE,900,3,1600,True,8657,True,8657,0.0,0.0
+True,0.0,1,PINHOLE,900,4,1600,0004.jpg,1,PINHOLE,900,4,1600,True,9286,True,9286,0.0,0.0
+True,0.0,1,PINHOLE,900,5,1600,0005.jpg,1,PINHOLE,900,5,1600,True,9599,True,9599,0.0,0.0
+True,0.0,1,PINHOLE,900,6,1600,0006.jpg,1,PINHOLE,900,6,1600,True,10025,True,10025,0.0,0.0
+True,0.0,1,PINHOLE,900,7,1600,0007.jpg,1,PINHOLE,900,7,1600,True,10452,True,10452,0.0,0.0
+True,0.0,1,PINHOLE,900,8,1600,0008.jpg,1,PINHOLE,900,8,1600,True,10032,True,10032,0.0,0.0
+True,0.0,1,PINHOLE,900,9,1600,0009.jpg,1,PINHOLE,900,9,1600,True,10167,True,10167,0.0,0.0
+True,0.0,1,PINHOLE,900,10,1600,0010.jpg,1,PINHOLE,900,10,1600,True,10054,True,10054,0.0,0.0
+True,0.0,1,PINHOLE,900,11,1600,0011.jpg,1,PINHOLE,900,11,1600,True,9371,True,9371,0.0,0.0
+True,0.0,1,PINHOLE,900,12,1600,0012.jpg,1,PINHOLE,900,12,1600,True,8835,True,8835,0.0,0.0
+True,0.0,1,PINHOLE,900,13,1600,0013.jpg,1,PINHOLE,900,13,1600,True,8352,True,8352,0.0,0.0
+True,0.0,1,PINHOLE,900,14,1600,0014.jpg,1,PINHOLE,900,14,1600,True,12369,True,12369,0.0,0.0
+True,0.0,1,PINHOLE,900,15,1600,0015.jpg,1,PINHOLE,900,15,1600,True,11416,True,11416,0.0,0.0

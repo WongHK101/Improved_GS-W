@@ -1,0 +1,43 @@
+﻿## Clean repo status
+
+### git status --short --branch
+## main...origin/main [ahead 1]
+?? reports/gsw_equivalence_audit/
+
+### git rev-parse --show-toplevel
+G:/WL3DGS/Improved_GS-W
+
+### git branch --show-current
+main
+
+### git rev-parse HEAD
+07bdc17db0912221126013badfb5c98348624eff
+
+### git submodule status --recursive
+
+### remote -v
+origin	https://github.com/WongHK101/Improved_GS-W.git (fetch)
+origin	https://github.com/WongHK101/Improved_GS-W.git (push)
+
+## Historical repo status
+
+### git -C historical status --short --branch
+## main...origin/main
+ M gaussian_renderer/__init__.py
+ M render.py
+ M scene/dataset_readers.py
+?? __pycache__/
+?? arguments/__pycache__/
+?? gaussian_renderer/__pycache__/
+?? net_modules/__pycache__/
+?? scene/__pycache__/
+?? utils/__pycache__/
+
+### historical HEAD
+fbe12be37cc0054296e2ef8631a6579b2a136ea7
+
+### historical diff --stat
+ gaussian_renderer/__init__.py |  5 +++--
+ render.py                     | 16 +++++++++++-----
+ scene/dataset_readers.py      |  6 +++---
+ 3 files changed, 17 insertions(+), 10 deletions(-)
