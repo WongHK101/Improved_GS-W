@@ -1,0 +1,30 @@
+{
+  "elapsed_seconds": 0.9997231960296631,
+  "feature_summary_mean_across_views": {
+    "element_mean": -0.002775779677904211,
+    "element_std": 0.3694292673697838,
+    "l2_mean": 1.731734532576341,
+    "l2_median": 1.067834464403299,
+    "l2_std": 1.8813753494849572,
+    "near_zero_element_ratio": 0.14403320734317487,
+    "near_zero_vector_ratio": 0.0
+  },
+  "iteration": 30000,
+  "model_path": "G:\\wl3dgs\\3dgs_runs\\improved_gsw_strict_30k_decision_20260630\\self_Trackmobile_4650TM_Mobile_Railcar_Mover",
+  "near_zero_eps": 1e-06,
+  "num_train_views_evaluated": 13,
+  "source_path": "G:\\wl3dgs\\3dgs_undistorted\\max1600\\self_Trackmobile_4650TM_Mobile_Railcar_Mover",
+  "split_file": "G:\\wl3dgs\\Improved_GS-W\\splits\\TRACKMOBILE_SPLIT.json",
+  "train_render_summary_mean_across_views": {
+    "intrinsic_lpips": 0.4534134360460135,
+    "intrinsic_psnr": 16.48656757061298,
+    "intrinsic_ssim": 0.5754853257766137,
+    "normal_intrinsic_mae": 0.03176305600656913,
+    "normal_intrinsic_max_abs": 0.9861635795006385,
+    "normal_lpips": 0.4258088790453397,
+    "normal_psnr": 17.155773602999172,
+    "normal_ssim": 0.6150336586512052
+  },
+  "zero_feature_l2_norm": 0.0,
+  "zero_l2_z_score_vs_train_view_mean_l2": -0.920462008312386
+}

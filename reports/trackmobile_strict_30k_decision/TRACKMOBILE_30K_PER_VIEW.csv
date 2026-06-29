@@ -1,0 +1,7 @@
+scene,mode,render_file,image_name,appearance_source,pose_center_distance,psnr,ssim,lpips,render_min,render_max,render_mean
+self_Trackmobile_4650TM_Mobile_Railcar_Mover,legacy_target_rgb,00000.png,0001.jpg,self_test_rgb,,10.696282386779785,0.42542731761932373,0.7642431259155273,0.0,1.0,0.3841465711593628
+self_Trackmobile_4650TM_Mobile_Railcar_Mover,legacy_target_rgb,00001.png,0009.jpg,self_test_rgb,,11.60446548461914,0.36239349842071533,0.6841678023338318,0.0,1.0,0.5538947582244873
+self_Trackmobile_4650TM_Mobile_Railcar_Mover,strict_intrinsic,00000.png,0001.jpg,zero_point_features,,10.573090553283691,0.4292740225791931,0.763342022895813,0.0,1.0,0.40493881702423096
+self_Trackmobile_4650TM_Mobile_Railcar_Mover,strict_intrinsic,00001.png,0009.jpg,zero_point_features,,11.738934516906738,0.3701234459877014,0.6813190579414368,0.0,1.0,0.5472877025604248
+self_Trackmobile_4650TM_Mobile_Railcar_Mover,strict_nearest_train,00000.png,0001.jpg,0002.jpg,1.5382812023,10.488686561584473,0.42375248670578003,0.761325478553772,0.0,1.0,0.39257150888442993
+self_Trackmobile_4650TM_Mobile_Railcar_Mover,strict_nearest_train,00001.png,0009.jpg,0010.jpg,1.2534600496,11.588154792785645,0.36701107025146484,0.678146243095398,0.0,1.0,0.5545384287834167
