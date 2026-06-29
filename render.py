@@ -41,14 +41,35 @@ def nearest_train_appearance_sources(test_views, train_views):
         mapping.append((test_view, best[1], best[0][0]))
     return mapping
 
-def write_appearance_mapping(model_path, iteration, mapping):
-    path = os.path.join(model_path, "test", "ours_{}".format(iteration), "appearance_mapping.csv")
+def method_dir_name(iteration, output_tag=""):
+    suffix = f"_{output_tag}" if output_tag else ""
+    return "ours_{}{}".format(iteration, suffix)
+
+
+def write_appearance_mapping(model_path, iteration, mapping, output_tag=""):
+    path = os.path.join(model_path, "test", method_dir_name(iteration, output_tag), "appearance_mapping.csv")
     makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", newline="", encoding="utf-8") as handle:
         writer = csv.writer(handle)
-        writer.writerow(["test_image", "train_appearance_source", "pose_center_distance"])
-        for test_view, train_view, distance in mapping:
-            writer.writerow([test_view.image_name, train_view.image_name, f"{distance:.10f}"])
+        writer.writerow(["render_file", "test_image", "train_appearance_source", "pose_center_distance"])
+        for idx, (test_view, train_view, distance) in enumerate(mapping):
+            writer.writerow(['{0:05d}.png'.format(idx), test_view.image_name, train_view.image_name, f"{distance:.10f}"])
+    return path
+
+
+def write_render_view_mapping(model_path, name, iteration, views, output_tag=""):
+    path = os.path.join(model_path, name, method_dir_name(iteration, output_tag), "render_view_mapping.csv")
+    makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", newline="", encoding="utf-8") as handle:
+        writer = csv.writer(handle)
+        writer.writerow(["render_file", "image_name", "colmap_id", "split_role"])
+        for idx, view in enumerate(views):
+            writer.writerow([
+                '{0:05d}.png'.format(idx),
+                view.image_name,
+                view.colmap_id,
+                getattr(view, "split_role", "unknown"),
+            ])
     return path
 
 
@@ -205,30 +226,32 @@ def render_intrinsic(model_path, name, iteration, views, gaussians, pipeline, ba
     
 def render_set(model_path, name, iteration, views, gaussians, pipeline, background,\
     render_multi_view=False,render_s2d_inter=False, appearance_mode="legacy_target_rgb",
-    train_views_for_appearance=None):
+    train_views_for_appearance=None, output_tag=""):
     '''
     '''
-    render_path = os.path.join(model_path, name, "ours_{}".format(iteration), "renders")
-    gts_path = os.path.join(model_path, name, "ours_{}".format(iteration), "gt")
+    method_name = method_dir_name(iteration, output_tag)
+    render_path = os.path.join(model_path, name, method_name, "renders")
+    gts_path = os.path.join(model_path, name, method_name, "gt")
     if gaussians.use_features_mask:
-        mask_path=os.path.join(model_path, name, "ours_{}".format(iteration), "masks")
+        mask_path=os.path.join(model_path, name, method_name, "masks")
         makedirs(mask_path, exist_ok=True)
 
     if appearance_mode in ["strict_intrinsic", "strict_nearest_train"]:
         render_multi_view = False
         render_s2d_inter = False
     if render_multi_view:
-        multi_view_path=os.path.join(model_path, name, "ours_{}".format(iteration), "multi_view")
+        multi_view_path=os.path.join(model_path, name, method_name, "multi_view")
     if render_s2d_inter:
-        s2d_inter_path=os.path.join(model_path, name, "ours_{}".format(iteration), "intrinsic_dynamic_interpolate")
+        s2d_inter_path=os.path.join(model_path, name, method_name, "intrinsic_dynamic_interpolate")
     makedirs(render_path, exist_ok=True)
     makedirs(gts_path, exist_ok=True)
+    write_render_view_mapping(model_path, name, iteration, views, output_tag)
     
     origin_views=copy.deepcopy(views)
     appearance_mapping = []
     if appearance_mode == "strict_nearest_train":
         appearance_mapping = nearest_train_appearance_sources(views, train_views_for_appearance)
-        write_appearance_mapping(model_path, iteration, appearance_mapping)
+        write_appearance_mapping(model_path, iteration, appearance_mapping, output_tag)
     for idx, view in enumerate(tqdm(views, desc="Rendering progress")):
         view.forbid_appearance_input = appearance_mode in ["strict_intrinsic", "strict_nearest_train"]
         appearance_source = None
@@ -296,12 +319,14 @@ def render_sets(args,dataset : ModelParams, iteration : int, pipeline : Pipeline
             render_set(dataset.model_path, "test", scene.loaded_iter, scene.getTestCameras(), gaussians, pipeline, \
                 background,render_multi_view=True,render_s2d_inter=True,
                 appearance_mode=args.test_appearance_mode,
-                train_views_for_appearance=scene.getTrainCameras())
+                train_views_for_appearance=scene.getTrainCameras(),
+                output_tag=args.render_output_tag)
             
             
         if not skip_train:
             train_cameras=scene.getTrainCameras()
-            render_set(dataset.model_path, "train", scene.loaded_iter, train_cameras, gaussians, pipeline, background)
+            render_set(dataset.model_path, "train", scene.loaded_iter, train_cameras, gaussians, pipeline, background,
+                output_tag=args.render_output_tag)
             
             if gaussians.color_net_type in ["naive"]:
                 render_intrinsic(dataset.model_path, "train", scene.loaded_iter, scene.getTrainCameras(), gaussians, pipeline, background)
@@ -329,6 +354,7 @@ if __name__ == "__main__":
     parser.add_argument("--render_interpolate", action="store_true",default=False)
 
     parser.add_argument("--render_multiview_vedio", action="store_true",default=False)
+    parser.add_argument("--render_output_tag", default="", type=str)
     
     args = get_combined_args(parser)
     print("Rendering " + args.model_path)
