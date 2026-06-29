@@ -20,3 +20,11 @@
 ## Interpretation
 
 The historical 30k training membership was 13 images, and the two LLFF hold-8 images were held out from training. However, historical GS-W evaluation still used `legacy_target_rgb`, which conditions the appearance branch on the held-out RGB at render time. Therefore the historical `12.385471 dB` number is not a strict held-out result even though its training split was held-out.
+
+## Leakage taxonomy
+
+A. Training-set leakage: **No evidence of training-set leakage**. `0001.jpg` and `0009.jpg` are TSV `test` rows and are excluded from `train_cam_infos` under historical `eval=True` legacy TSV logic.
+
+B. Test-appearance leakage: **Present for historical legacy evaluation**. Historical GS-W legacy rendering calls `pc.forward(viewpoint_camera)`, so the held-out test camera RGB is passed to `map_generator` for appearance conditioning.
+
+C. Evaluation-protocol leakage: **No split/GT/size/mask leakage found in existing renders**. Unified metric audit uses the same two GT PNGs and full-image filename pairing. Historical and clean protocols still differ in appearance mode and source-path plumbing.

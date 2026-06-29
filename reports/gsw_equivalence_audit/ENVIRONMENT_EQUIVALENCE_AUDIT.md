@@ -1,6 +1,6 @@
 # Environment Equivalence Audit
 
-Generated: 2026-06-30T05:12:52
+Generated: 2026-06-30T05:47:22
 
 ## Current audit/runtime environment
 
@@ -24,7 +24,7 @@ Generated: 2026-06-30T05:12:52
 
 ```text
 $ nvidia-smi
-Tue Jun 30 05:12:52 2026       
+Tue Jun 30 05:47:22 2026
 +-----------------------------------------------------------------------------+
 | NVIDIA-SMI 526.98       Driver Version: 526.98       CUDA Version: 12.0     |
 |-------------------------------+----------------------+----------------------+
@@ -33,10 +33,10 @@ Tue Jun 30 05:12:52 2026
 |                               |                      |               MIG M. |
 |===============================+======================+======================|
 |   0  NVIDIA GeForce ... WDDM  | 00000000:01:00.0  On |                  Off |
-|  0%   43C    P2    77W / 450W |   2956MiB / 24564MiB |      2%      Default |
+|  0%   43C    P2    70W / 450W |   2801MiB / 24564MiB |      2%      Default |
 |                               |                      |                  N/A |
 +-------------------------------+----------------------+----------------------+
-                                                                               
+
 +-----------------------------------------------------------------------------+
 | Processes:                                                                  |
 |  GPU   GI   CI        PID   Type   Process name                  GPU Memory |
@@ -46,7 +46,6 @@ Tue Jun 30 05:12:52 2026
 |    0   N/A  N/A      5336    C+G   ...bbwe\Microsoft.Photos.exe    N/A      |
 |    0   N/A  N/A      6648    C+G   ...e6\promecefpluginhost.exe    N/A      |
 |    0   N/A  N/A      7688    C+G   ...03.112\msedgewebview2.exe    N/A      |
-|    0   N/A  N/A     10412    C+G   D:\todesk\ToDesk.exe            N/A      |
 |    0   N/A  N/A     10432    C+G   ...wekyb3d8bbwe\Video.UI.exe    N/A      |
 |    0   N/A  N/A     11828    C+G   ...AweSun\flutter\AweSun.exe    N/A      |
 |    0   N/A  N/A     14224    C+G   ...me\Application\chrome.exe    N/A      |
@@ -56,10 +55,10 @@ Tue Jun 30 05:12:52 2026
 |    0   N/A  N/A     23616    C+G   ...03.112\msedgewebview2.exe    N/A      |
 |    0   N/A  N/A     24748    C+G   ...2nqsd0c76g0\app\Codex.exe    N/A      |
 |    0   N/A  N/A     29256    C+G   ...��\PCAnomalyDetection.exe    N/A      |
+|    0   N/A  N/A     29936      C   ...onda\envs\3dgs\python.exe    N/A      |
 |    0   N/A  N/A     30592    C+G   ...\current_new\DingTalk.exe    N/A      |
 |    0   N/A  N/A     31932    C+G   C:\Windows\explorer.exe         N/A      |
 |    0   N/A  N/A     36440    C+G   ...5n1h2txyewy\SearchApp.exe    N/A      |
-|    0   N/A  N/A     38436      C   ...onda\envs\3dgs\python.exe    N/A      |
 |    0   N/A  N/A     38972    C+G   ...artMenuExperienceHost.exe    N/A      |
 |    0   N/A  N/A     41432    C+G   ...nputApp\TextInputHost.exe    N/A      |
 |    0   N/A  N/A     42300    C+G   ...y\ShellExperienceHost.exe    N/A      |

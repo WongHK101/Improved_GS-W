@@ -34,6 +34,34 @@ This audit checks the existing clean 30k code path without modifying training or
 
 No new training or optimizer step was executed in this audit. The script did not run a backward pass on the 30k checkpoint. The branch is nevertheless active by source-path inspection: `map_generator(img)` feeds `_point_features`, `_point_features` feeds `Color_net`, and the rendered image participates in the photometric and LPIPS losses. Existing checkpoint files also contain map-generator, color-net and box-coordinate states.
 
+## Strict checkpoint load probe
+
+This probe loads the current clean 30k network state into the current architecture with `strict=True`. It does not render, run backward, or save any weights.
+
+```text
+D:\anaconda\envs\3dgs\lib\site-packages\torchvision\models\_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=ResNet18_Weights.IMAGENET1K_V1`. You can also use `weights=ResNet18_Weights.DEFAULT` to get the most up-to-date weights.
+  warnings.warn(msg)
+strict_load_ok=True
+map_generator_keys=215
+color_net_keys=18
+features_dim=48
+map_num=3
+map_generator_type=unet
+color_net_type=naive
+render_executed=False
+backward_executed=False
+optimizer_step_executed=False
+color_net.pth_sha256_before=e9aaa4d26ac81062d3adb017bc3daf7ed1469735e981a74b0c9f97dbf0a69c3d
+map_generator.pth_sha256_before=84087a3edd109fd2c3860784c2224eec974b26ac3237f9b6c64b850074274af6
+other_atrributes_dict.pth_sha256_before=ad4240a83c9b4bc8a6e1c7587f717f256ae727775a486f65e94f3bfeb037b227
+color_net.pth_sha256_after=e9aaa4d26ac81062d3adb017bc3daf7ed1469735e981a74b0c9f97dbf0a69c3d
+map_generator.pth_sha256_after=84087a3edd109fd2c3860784c2224eec974b26ac3237f9b6c64b850074274af6
+other_atrributes_dict.pth_sha256_after=ad4240a83c9b4bc8a6e1c7587f717f256ae727775a486f65e94f3bfeb037b227
+checkpoint_files_unchanged=True
+```
+
+Backward-gradient diagnostic was intentionally not executed in this pass to avoid unnecessary checkpoint/model-state mutation risk. If GPT requires it, it should be run as a separate guarded diagnostic with pre/post SHA256 checks and no optimizer step.
+
 ## Evaluation-mode behavior
 
 `GaussianModel.set_eval(True)` switches `color_net` to eval, disables color-net dropout, and disables the feature mask branch. It is restored by `set_eval(False)`. Clean strict modes additionally prevent target test RGB from entering `map_generator`.

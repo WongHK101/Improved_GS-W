@@ -1,6 +1,6 @@
 # GS-W Historical vs Clean Equivalence Audit Summary
 
-Generated: 2026-06-30T05:12:54
+Generated: 2026-06-30T05:47:24
 
 ## Key answers
 
@@ -17,9 +17,15 @@ Generated: 2026-06-30T05:12:54
 
 The clean 30k enabled the complete core GS-W switches found in the historical config: `use_colors_precomp=True`, `use_features_mask=True`, `use_kmap_pjmap=True`, `use_lpips_loss=True`, `map_num=3`, `map_generator_type=unet`, `features_dim=48`, and `color_net_type=naive`.
 
-Key argument differences are: `['source_path', 'sparse_subdir', 'split_mode', 'split_file', 'test_appearance_mode', 'eval']`.
+Key argument differences are: `['eval', 'split_source', 'tsv_path', 'source_path', 'sparse_subdir', 'split_mode', 'split_file', 'test_appearance_mode']`.
 Most are protocol/data-path differences: historical `source_path` points to the GS-W dense adapter and uses `eval=True` legacy TSV splitting; clean points to the original COLMAP source and uses `split_mode=frozen_manifest`.
 
 ## Main interpretation
 
 The 1.24 dB historical-vs-clean legacy gap is real under unified re-evaluation, but current evidence points to optimization/code-path non-equivalence rather than split leakage. Because the final Gaussian count and learned state differ, a matched adapter-path rerun is needed before using the gap to decide GS-W go/no-go.
+
+## Leakage taxonomy
+
+- Training-set leakage: no.
+- Test-appearance leakage: yes for historical legacy evaluation.
+- Evaluation-protocol leakage: no split/GT/size/mask mismatch found in existing renders; appearance protocol differs.

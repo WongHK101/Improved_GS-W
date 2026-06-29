@@ -29,6 +29,8 @@ from PIL import Image, ImageOps
 
 ROOT = Path(__file__).resolve().parents[2]
 REPORT_DIR = ROOT / "reports" / "gsw_equivalence_audit"
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 SCENE = "self_Trackmobile_4650TM_Mobile_Railcar_Mover"
 HIST_CODE = Path(r"G:\wl3dgs\external_baselines\Gaussian-Wild")
@@ -44,11 +46,22 @@ GPT_PACKAGE_DIR = Path(r"G:\WL3DGS\gpt_review_packages")
 
 
 CFG_KEYS_OF_INTEREST = [
+    "eval",
+    "split_source",
+    "tsv_path",
+    "train_camera_count",
+    "test_camera_count",
+    "actual_train_image_names",
+    "actual_test_image_names",
+    "resolution",
+    "source_path",
+    "images",
     "use_colors_precomp",
     "use_features_mask",
     "use_kmap_pjmap",
     "use_lpips_loss",
     "map_num",
+    "seed",
     "map_generator_type",
     "color_net_type",
     "feature_maps_dim",
@@ -76,8 +89,6 @@ CFG_KEYS_OF_INTEREST = [
     "sh_degree",
     "resolution",
     "iterations",
-    "source_path",
-    "images",
     "sparse_subdir",
     "split_mode",
     "split_file",
@@ -199,6 +210,10 @@ def sha256_file(path: Path) -> str:
 def sha256_lines(lines: list[str]) -> str:
     payload = "".join(f"{line}\n" for line in lines).encode("utf-8")
     return hashlib.sha256(payload).hexdigest()
+
+
+def strip_line_trailing_ws(text: str) -> str:
+    return "\n".join(line.rstrip() for line in text.splitlines())
 
 
 def repr_value(value: Any) -> str:
@@ -340,7 +355,30 @@ def image_record(path: Path) -> dict[str, Any]:
         "rgb_sha256": hashlib.sha256(arr.tobytes()).hexdigest(),
         "rgb_mean": float(arr.mean()),
         "rgb_std": float(arr.std()),
+        "rgb_array": arr,
     }
+
+
+def link_info(path: Path) -> dict[str, str]:
+    cmd = [
+        "powershell",
+        "-NoProfile",
+        "-Command",
+        (
+            "$item=Get-Item -LiteralPath "
+            + repr(str(path))
+            + " -Force; "
+            "$target=''; "
+            "if ($item.Target) { $target=($item.Target -join ';') }; "
+            "[pscustomobject]@{FullName=$item.FullName;Mode=$item.Mode;LinkType=$item.LinkType;Target=$target;Attributes=$item.Attributes.ToString()} | ConvertTo-Json -Compress"
+        ),
+    ]
+    out = run_cmd(cmd, timeout=20)
+    try:
+        parsed = json.loads(out)
+        return {k: str(v) for k, v in parsed.items()}
+    except Exception:
+        return {"FullName": str(path), "Mode": "", "LinkType": "", "Target": "", "Attributes": "", "probe_output": out}
 
 
 def metric_images(render_path: Path, gt_path: Path) -> dict[str, Any]:
@@ -348,12 +386,21 @@ def metric_images(render_path: Path, gt_path: Path) -> dict[str, Any]:
         render = np.asarray(ImageOps.exif_transpose(render_img).convert("RGB"), dtype=np.float32) / 255.0
         gt = np.asarray(ImageOps.exif_transpose(gt_img).convert("RGB"), dtype=np.float32) / 255.0
     if render.shape != gt.shape:
-        raise ValueError(f"shape mismatch: {render_path} {render.shape} vs {gt_path} {gt.shape}")
+        return {
+            "compatible": False,
+            "incompatible_reason": f"shape mismatch render={render.shape} gt={gt.shape}",
+            "width": "",
+            "height": "",
+            "render_sha256": sha256_file(render_path),
+            "gt_sha256": sha256_file(gt_path),
+        }
     diff = render - gt
     mse = float(np.mean(diff * diff))
     mae = float(np.mean(np.abs(diff)))
     psnr = float("inf") if mse == 0 else 20.0 * math.log10(1.0 / math.sqrt(mse))
     return {
+        "compatible": True,
+        "incompatible_reason": "",
         "width": render.shape[1],
         "height": render.shape[0],
         "mse": mse,
@@ -431,8 +478,9 @@ def evaluate_existing_renders() -> tuple[list[dict[str, Any]], list[dict[str, An
             }
             if gt_path.exists():
                 row.update(metric_images(render_path, gt_path))
-                all_pairs.append((render_path, gt_path))
-                pair_indices.append(len(per_rows))
+                if row.get("compatible"):
+                    all_pairs.append((render_path, gt_path))
+                    pair_indices.append(len(per_rows))
             per_rows.append(row)
 
     torch_rows, torch_note = optional_torch_metrics(all_pairs)
@@ -453,13 +501,19 @@ def evaluate_existing_renders() -> tuple[list[dict[str, Any]], list[dict[str, An
             "group": label,
             "method_dir": str(method_dir),
             "status": "ok",
+            "protocol_set": "original_protocol_set",
+            "common_view_set": "00000.png;00001.png",
+            "incompatible_or_unavailable": "",
             "num_views": len(rows),
-            "psnr": float(np.mean([float(r["psnr"]) for r in rows])),
-            "ssim": mean_optional(rows, "ssim"),
-            "lpips": mean_optional(rows, "lpips"),
+            "unified_psnr": float(np.mean([float(r["psnr"]) for r in rows])),
+            "unified_ssim": mean_optional(rows, "ssim"),
+            "unified_lpips": mean_optional(rows, "lpips"),
+            "common_view_psnr": float(np.mean([float(r["psnr"]) for r in rows])),
+            "common_view_ssim": mean_optional(rows, "ssim"),
+            "common_view_lpips": mean_optional(rows, "lpips"),
             "mse": float(np.mean([float(r["mse"]) for r in rows])),
             "mae": float(np.mean([float(r["mae"]) for r in rows])),
-            "existing_results_json": existing_metric_json(method_dir.parent.parent, method_dir.name),
+            "original_reported_metrics_json": existing_metric_json(method_dir.parent.parent, method_dir.name),
         })
     return summary_rows, per_rows, torch_note
 
@@ -505,12 +559,39 @@ def code_file_checksums() -> list[dict[str, Any]]:
     return rows
 
 
+def effective_cfg(cfg: dict[str, Any], split: dict[str, Any], label: str) -> dict[str, Any]:
+    result = dict(cfg)
+    if label == "historical":
+        result.update({
+            "split_source": "legacy_tsv",
+            "tsv_path": str(HIST_TSV),
+            "train_camera_count": len(split["train_images"]),
+            "test_camera_count": len(split["test_images"]),
+            "actual_train_image_names": split["train_images"],
+            "actual_test_image_names": split["test_images"],
+            "seed": 0,
+        })
+    else:
+        result.update({
+            "split_source": "frozen_manifest",
+            "tsv_path": "",
+            "train_camera_count": len(split["train_images"]),
+            "test_camera_count": len(split["test_images"]),
+            "actual_train_image_names": split["train_images"],
+            "actual_test_image_names": split["test_images"],
+            "seed": 0,
+        })
+    return result
+
+
 def compare_cfgs(historical_cfg: dict[str, Any], current_cfg: dict[str, Any], hist_split: dict[str, Any], cur_split: dict[str, Any]) -> list[dict[str, Any]]:
-    keys = list(dict.fromkeys(CFG_KEYS_OF_INTEREST + sorted(set(historical_cfg) | set(current_cfg))))
+    historical_eff = effective_cfg(historical_cfg, hist_split, "historical")
+    current_eff = effective_cfg(current_cfg, cur_split, "current")
+    keys = list(dict.fromkeys(CFG_KEYS_OF_INTEREST + sorted(set(historical_eff) | set(current_eff))))
     rows: list[dict[str, Any]] = []
     for key in keys:
-        hval = historical_cfg.get(key, "<missing>")
-        cval = current_cfg.get(key, "<missing>")
+        hval = historical_eff.get(key, "<missing>")
+        cval = current_eff.get(key, "<missing>")
         rows.append({
             "argument": key,
             "historical_value": repr_value(hval),
@@ -579,15 +660,38 @@ def split_audit() -> dict[str, Any]:
     registered = frame["filename"].tolist()
     rows = []
     for _, row in frame.iterrows():
+        role = str(row["split"])
+        image_name = str(row["filename"])
         rows.append({
-            "filename": row["filename"],
+            "image_name": image_name,
+            "expected_role": "test" if image_name in {"0001.jpg", "0009.jpg"} else "train",
+            "historical_scene_role": role,
+            "used_for_training": role == "train",
+            "used_as_test": role == "test",
+            "evidence": (
+                f"cfg_args eval=True; legacy TSV split at {HIST_TSV}; "
+                "historical scene/dataset_readers.py readColmapSceneInfo filters split=='train' into train_cam_infos "
+                "and split=='test' into test_cam_infos before Scene.getTrainCameras sampling"
+            ),
+            "confidence": "high",
             "tsv_id": int(row["id"]),
-            "historical_split": row["split"],
-            "entered_historical_training": row["split"] == "train",
-            "entered_historical_test": row["split"] == "test",
-            "current_split": "test" if row["filename"] in read_json(CURRENT_RUN / "split_used.json")["test_images"] else "train",
+            "current_split": "test" if image_name in read_json(CURRENT_RUN / "split_used.json")["test_images"] else "train",
         })
-    write_csv(REPORT_DIR / "HISTORICAL_TRAIN_TEST_MEMBERSHIP.csv", rows)
+    write_csv(
+        REPORT_DIR / "HISTORICAL_TRAIN_TEST_MEMBERSHIP.csv",
+        rows,
+        fieldnames=[
+            "image_name",
+            "expected_role",
+            "historical_scene_role",
+            "used_for_training",
+            "used_as_test",
+            "evidence",
+            "confidence",
+            "tsv_id",
+            "current_split",
+        ],
+    )
     return {
         "registered_images": registered,
         "train_images": train,
@@ -606,6 +710,7 @@ def data_audit(registered_names: list[str]) -> tuple[list[dict[str, Any]], list[
         hist_path = HIST_DENSE / "images" / name
         clean = image_record(clean_path)
         hist = image_record(hist_path)
+        diff = clean["rgb_array"].astype(np.int16) - hist["rgb_array"].astype(np.int16)
         image_rows.append({
             "filename": name,
             "clean_path": clean["path"],
@@ -625,6 +730,8 @@ def data_audit(registered_names: list[str]) -> tuple[list[dict[str, Any]], list[
             "historical_height": hist["rgb_height"],
             "clean_exif_orientation": clean["exif_orientation"],
             "historical_exif_orientation": hist["exif_orientation"],
+            "max_abs_pixel_diff": int(np.max(np.abs(diff))),
+            "mean_abs_pixel_diff": float(np.mean(np.abs(diff))),
         })
 
     hist_sparse = sparse_model_path(HIST_DENSE)
@@ -666,6 +773,8 @@ def data_audit(registered_names: list[str]) -> tuple[list[dict[str, Any]], list[
         "clean_sparse_path": str(clean_sparse),
         "historical_sparse_realpath": str(hist_sparse.resolve()),
         "clean_sparse_realpath": str(clean_sparse.resolve()),
+        "historical_images_link_info": link_info(HIST_DENSE / "images"),
+        "historical_sparse_link_info": link_info(HIST_DENSE / "sparse"),
         "historical_sparse_files": sorted(p.name for p in hist_sparse.iterdir() if p.is_file()),
         "clean_sparse_files": sorted(p.name for p in clean_sparse.iterdir() if p.is_file()),
         "historical_points3d": read_points3d_binary_summary(hist_sparse / "points3D.bin"),
@@ -685,6 +794,7 @@ def checkpoint_summary(run_path: Path, label: str) -> dict[str, Any]:
         "label": label,
         "run_path": str(run_path),
         "ckpt_path": str(ckpt),
+        "point_cloud_iteration": 30000,
         "point_cloud_ply_exists": ply_path.exists(),
         "gaussian_count": ply_vertex_count(ply_path) if ply_path.exists() else "",
     }
@@ -710,6 +820,10 @@ def torch_checkpoint_details(ckpt: Path) -> dict[str, Any]:
             state = torch.load(path, map_location="cpu")
             details[f"{name}_tensor_count"] = len(state)
             details[f"{name}_param_count"] = int(sum(v.numel() for v in state.values() if hasattr(v, "numel")))
+            details[f"{name}_tensor_shapes_json"] = json.dumps(
+                {k: list(v.shape) for k, v in state.items() if hasattr(v, "shape")},
+                sort_keys=True,
+            )
         except Exception as exc:
             details[f"{name}_load_error"] = f"{type(exc).__name__}: {exc}"
     other = ckpt / "other_atrributes_dict.pth"
@@ -722,6 +836,56 @@ def torch_checkpoint_details(ckpt: Path) -> dict[str, Any]:
         except Exception as exc:
             details["other_attributes_load_error"] = f"{type(exc).__name__}: {exc}"
     return details
+
+
+def checkpoint_strict_load_probe() -> str:
+    ckpt = CURRENT_RUN / "ckpts_point_cloud" / "iteration_30000"
+    watched_files = [
+        ckpt / "map_generator.pth",
+        ckpt / "color_net.pth",
+        ckpt / "other_atrributes_dict.pth",
+    ]
+    before = {path.name: sha256_file(path) for path in watched_files if path.exists()}
+    code = r"""
+from pathlib import Path
+import torch
+from argparse import Namespace
+from arguments.args_init import argument_init
+from scene.gaussian_model import GaussianModel
+
+root = Path(r'G:\wl3dgs\Improved_GS-W')
+cfg_path = Path(r'G:\wl3dgs\3dgs_runs\improved_gsw_strict_30k_decision_20260630\self_Trackmobile_4650TM_Mobile_Railcar_Mover\cfg_args')
+ns = eval(cfg_path.read_text(encoding='utf-8'), {'__builtins__': {}}, {'Namespace': Namespace})
+args = argument_init(ns)
+model = GaussianModel(args.sh_degree, args)
+ckpt = cfg_path.parent / 'ckpts_point_cloud' / 'iteration_30000'
+map_state = torch.load(ckpt / 'map_generator.pth', map_location='cpu')
+color_state = torch.load(ckpt / 'color_net.pth', map_location='cpu')
+model.map_generator.load_state_dict(map_state, strict=True)
+model.color_net.load_state_dict(color_state, strict=True)
+print('strict_load_ok=True')
+print('map_generator_keys=' + str(len(map_state)))
+print('color_net_keys=' + str(len(color_state)))
+print('features_dim=' + str(args.features_dim))
+print('map_num=' + str(args.map_num))
+print('map_generator_type=' + str(args.map_generator_type))
+print('color_net_type=' + str(args.color_net_type))
+print('render_executed=False')
+print('backward_executed=False')
+print('optimizer_step_executed=False')
+"""
+    output = run_cmd([sys.executable, "-c", code], cwd=ROOT, timeout=120)
+    after = {path.name: sha256_file(path) for path in watched_files if path.exists()}
+    sha_lines = [
+        f"{name}_sha256_before={before[name]}"
+        for name in sorted(before)
+    ] + [
+        f"{name}_sha256_after={after.get(name, '<missing>')}"
+        for name in sorted(before)
+    ] + [
+        f"checkpoint_files_unchanged={before == after}"
+    ]
+    return "\n".join([output.rstrip(), *sha_lines]).strip()
 
 
 def environment_lines(torch_note: str) -> str:
@@ -752,10 +916,10 @@ def environment_lines(torch_note: str) -> str:
         "",
         "```text",
         "$ nvidia-smi",
-        run_cmd(["nvidia-smi"], timeout=10),
+        strip_line_trailing_ws(run_cmd(["nvidia-smi"], timeout=10)),
         "",
         "$ nvcc --version",
-        run_cmd(["nvcc", "--version"], timeout=10),
+        strip_line_trailing_ws(run_cmd(["nvcc", "--version"], timeout=10)),
         "```",
         "",
         "## Rasterizer signature probe",
@@ -823,6 +987,7 @@ def build_active_branch_report() -> str:
         lines.append(f"| {feature} | `{loc}` | `{pattern}` | {risk} |")
     hist = checkpoint_summary(HIST_RUN, "historical_gsw")
     cur = checkpoint_summary(CURRENT_RUN, "clean_gsw")
+    strict_probe = checkpoint_strict_load_probe()
     lines.extend([
         "",
         "## Checkpoint branch artifacts",
@@ -839,6 +1004,17 @@ def build_active_branch_report() -> str:
         "No new training or optimizer step was executed in this audit. The script did not run a backward pass on the 30k checkpoint. "
         "The branch is nevertheless active by source-path inspection: `map_generator(img)` feeds `_point_features`, `_point_features` feeds `Color_net`, "
         "and the rendered image participates in the photometric and LPIPS losses. Existing checkpoint files also contain map-generator, color-net and box-coordinate states.",
+        "",
+        "## Strict checkpoint load probe",
+        "",
+        "This probe loads the current clean 30k network state into the current architecture with `strict=True`. It does not render, run backward, or save any weights.",
+        "",
+        "```text",
+        strict_probe,
+        "```",
+        "",
+        "Backward-gradient diagnostic was intentionally not executed in this pass to avoid unnecessary checkpoint/model-state mutation risk. "
+        "If GPT requires it, it should be run as a separate guarded diagnostic with pre/post SHA256 checks and no optimizer step.",
         "",
         "## Evaluation-mode behavior",
         "",
@@ -886,6 +1062,11 @@ def build_code_diff_report(checksum_rows: list[dict[str, Any]]) -> str:
         "",
         "Full focused historical patch is saved as `HISTORICAL_WORKTREE.patch`.",
         "",
+        "## Whether historical 30k used these dirty files",
+        "",
+        "Status: **unknown**. The historical run preserves `cfg_args`, logs and outputs, but no immutable source snapshot or dirty-worktree checksum embedded in the run output was found. "
+        "The current historical repo dirty files are frozen in this audit as the best available local evidence, but the audit does not assume they are exactly the files used on 2026-06-21.",
+        "",
         "## Clean-vs-historical relevant file checksums",
         "",
         f"- Relevant source files compared: `{len(checksum_rows)}`.",
@@ -916,6 +1097,8 @@ def build_code_diff_report(checksum_rows: list[dict[str, Any]]) -> str:
 def build_data_report(image_rows: list[dict[str, Any]], camera_rows: list[dict[str, Any]], sparse_summary: dict[str, Any]) -> str:
     image_file_equal = all(bool(row["file_sha256_equal"]) for row in image_rows)
     image_rgb_equal = all(bool(row["rgb_sha256_equal"]) for row in image_rows)
+    max_pixel_diff = max(int(row["max_abs_pixel_diff"]) for row in image_rows)
+    mean_pixel_diff = max(float(row["mean_abs_pixel_diff"]) for row in image_rows)
     camera_pose_equal = all(
         row.get("qvec_max_abs_diff") == 0.0 and row.get("tvec_max_abs_diff") == 0.0 for row in camera_rows
     )
@@ -934,7 +1117,15 @@ def build_data_report(image_rows: list[dict[str, Any]], camera_rows: list[dict[s
         f"- Registered images audited: `{len(image_rows)}`.",
         f"- File SHA256 all equal: `{image_file_equal}`.",
         f"- Decoded RGB SHA256 all equal: `{image_rgb_equal}`.",
+        f"- Maximum absolute pixel difference across audited images: `{max_pixel_diff}`.",
+        f"- Maximum mean absolute pixel difference across audited images: `{mean_pixel_diff}`.",
         "- No resize, crop, color conversion, EXIF-orientation discrepancy, or JPEG re-encoding was detected when all SHA256 values are equal.",
+        "",
+        "## Windows link type",
+        "",
+        f"- Historical `dense/images` link info: `{sparse_summary['historical_images_link_info']}`.",
+        f"- Historical `dense/sparse` link info: `{sparse_summary['historical_sparse_link_info']}`.",
+        "- If `LinkType` is populated, the adapter is a Windows link/junction/symlink to the original data rather than a re-encoded image export. If blank, PowerShell reports it as a normal directory.",
         "",
         "## COLMAP equivalence",
         "",
@@ -970,8 +1161,8 @@ def build_metric_report(summary_rows: list[dict[str, Any]], per_rows: list[dict[
     ]
     for row in summary_rows:
         lines.append(
-            f"| {row.get('group')} | {row.get('num_views', '')} | {fmt(row.get('psnr'))} | "
-            f"{fmt(row.get('ssim'))} | {fmt(row.get('lpips'))} | {fmt(row.get('mae'))} | {row.get('status')} |"
+            f"| {row.get('group')} | {row.get('num_views', '')} | {fmt(row.get('unified_psnr'))} | "
+            f"{fmt(row.get('unified_ssim'))} | {fmt(row.get('unified_lpips'))} | {fmt(row.get('mae'))} | {row.get('status')} |"
         )
     lines.extend([
         "",
@@ -981,7 +1172,10 @@ def build_metric_report(summary_rows: list[dict[str, Any]], per_rows: list[dict[
         "- Full RGB images are used; no mask or crop is applied.",
         "- Values are decoded through PIL as RGB and scaled to `[0, 1]`.",
         "- PSNR is computed from full-image MSE as `20 * log10(1 / sqrt(MSE))`, matching `utils.image_utils.psnr`.",
-        "- Existing `results.json` values are copied into `UNIFIED_REEVALUATION.csv` for comparison.",
+        "- Existing `results.json` values are copied into `original_reported_metrics_json` for comparison.",
+        "- Because all audited groups contain the same two files, original-protocol and common-view metrics are identical here.",
+        "- The script marks incompatible dimensions rather than resizing or cropping.",
+        "- LPIPS uses `lpips.LPIPS(net='alex')`, `normalize=True`, `spatial=False`, and tensors in `[0, 1]`; no LPIPS resize/crop path is used.",
     ])
     return "\n".join(lines) + "\n"
 
@@ -1010,6 +1204,13 @@ def build_checkpoint_report(rows: list[dict[str, Any]]) -> str:
         f"- Map-generator checkpoint sizes equal: `{hist['map_generator.pth_size'] == cur['map_generator.pth_size']}`.",
         f"- Color-net checkpoint sizes equal: `{hist['color_net.pth_size'] == cur['color_net.pth_size']}`.",
         f"- Other-attributes sizes equal: `{hist['other_atrributes_dict.pth_size'] == cur['other_atrributes_dict.pth_size']}`.",
+        f"- Historical map-generator keys/params: `{hist.get('map_generator.pth_tensor_count')}` / `{hist.get('map_generator.pth_param_count')}`.",
+        f"- Current map-generator keys/params: `{cur.get('map_generator.pth_tensor_count')}` / `{cur.get('map_generator.pth_param_count')}`.",
+        f"- Historical color-net keys/params: `{hist.get('color_net.pth_tensor_count')}` / `{hist.get('color_net.pth_param_count')}`.",
+        f"- Current color-net keys/params: `{cur.get('color_net.pth_tensor_count')}` / `{cur.get('color_net.pth_param_count')}`.",
+        f"- Historical other-attributes keys: `{hist.get('other_attributes_keys', '')}`.",
+        f"- Current other-attributes keys: `{cur.get('other_attributes_keys', '')}`.",
+        "- Feature dimensions: `48`; map_num: `3`; map generator: `unet/resnet18`; color net: `naive`.",
         "",
         "The network architecture file sizes match, but the learned weights differ and the final Gaussian count differs. "
         "That means the two completed 30k optimizations are not byte-equivalent even though the high-level GS-W configuration is largely matched.",
@@ -1043,6 +1244,14 @@ def build_split_report(split: dict[str, Any], cur_split: dict[str, Any]) -> str:
         "The historical 30k training membership was 13 images, and the two LLFF hold-8 images were held out from training. "
         "However, historical GS-W evaluation still used `legacy_target_rgb`, which conditions the appearance branch on the held-out RGB at render time. "
         "Therefore the historical `12.385471 dB` number is not a strict held-out result even though its training split was held-out.",
+        "",
+        "## Leakage taxonomy",
+        "",
+        "A. Training-set leakage: **No evidence of training-set leakage**. `0001.jpg` and `0009.jpg` are TSV `test` rows and are excluded from `train_cam_infos` under historical `eval=True` legacy TSV logic.",
+        "",
+        "B. Test-appearance leakage: **Present for historical legacy evaluation**. Historical GS-W legacy rendering calls `pc.forward(viewpoint_camera)`, so the held-out test camera RGB is passed to `map_generator` for appearance conditioning.",
+        "",
+        "C. Evaluation-protocol leakage: **No split/GT/size/mask leakage found in existing renders**. Unified metric audit uses the same two GT PNGs and full-image filename pairing. Historical and clean protocols still differ in appearance mode and source-path plumbing.",
     ]
     return "\n".join(lines) + "\n"
 
@@ -1059,7 +1268,7 @@ def build_rerun_decision(
     pose_equal = all(row.get("qvec_max_abs_diff") == 0.0 and row.get("tvec_max_abs_diff") == 0.0 for row in camera_rows)
     hist_metric = next((r for r in summary_rows if r.get("group") == "historical_gsw_legacy"), {})
     clean_metric = next((r for r in summary_rows if r.get("group") == "clean_gsw_legacy_target_rgb"), {})
-    psnr_gap = float(hist_metric.get("psnr", 0)) - float(clean_metric.get("psnr", 0))
+    psnr_gap = float(hist_metric.get("unified_psnr", 0)) - float(clean_metric.get("unified_psnr", 0))
     hist_ckpt = next(row for row in ckpt_rows if row["label"] == "historical_gsw")
     clean_ckpt = next(row for row in ckpt_rows if row["label"] == "clean_gsw")
     gaussian_gap = int(clean_ckpt["gaussian_count"]) - int(hist_ckpt["gaussian_count"])
@@ -1077,13 +1286,16 @@ def build_rerun_decision(
     lines = [
         "# Rerun Decision",
         "",
-        "Decision class: **D with residual optimization/code-path uncertainty**.",
+        "Primary classification: **D - configuration, data, code and metrics are broadly equivalent for membership/metric comparability, with residual optimization/code-path uncertainty**.",
+        "",
+        "Secondary findings: **B - test-appearance leakage is present in historical legacy evaluation**. "
+        "Historical training membership is held-out, but historical legacy rendering is not strict because test RGB conditions the appearance branch.",
         "",
         "Configuration, split membership, data pixels, camera poses, and the metric pipeline are broadly equivalent for the purpose of judging training membership and metric comparability. "
         "The remaining historical-vs-clean PSNR gap is real, but it is not explained by training-view leakage through the split.",
         "",
-        f"- Unified historical GS-W legacy PSNR: `{fmt(hist_metric.get('psnr'))}`.",
-        f"- Unified clean GS-W legacy PSNR: `{fmt(clean_metric.get('psnr'))}`.",
+        f"- Unified historical GS-W legacy PSNR: `{fmt(hist_metric.get('unified_psnr'))}`.",
+        f"- Unified clean GS-W legacy PSNR: `{fmt(clean_metric.get('unified_psnr'))}`.",
         f"- Historical minus clean legacy gap: `{psnr_gap:.6f} dB`.",
         f"- Image RGB equivalence: `{image_equal}`.",
         f"- Camera pose equivalence: `{pose_equal}`.",
@@ -1143,9 +1355,9 @@ def build_summary(
         f"2. `0001.jpg` and `0009.jpg` did **not** enter historical training; both were historical test images.",
         "3. Historical `12.385471 dB` is **not strict held-out** because historical GS-W legacy rendering conditions the appearance branch on held-out test RGB.",
         f"4. Historical/current clean split membership equal: `{split['train_images'] == cur_split['train_images'] and split['test_images'] == cur_split['test_images']}`.",
-        f"5. Historical GS-W legacy unified PSNR: `{fmt(hist_metric.get('psnr'))}`.",
-        f"6. Current clean GS-W legacy unified PSNR: `{fmt(clean_metric.get('psnr'))}`.",
-        f"7. Current clean GS-W strict intrinsic unified PSNR: `{fmt(strict_metric.get('psnr'))}`.",
+        f"5. Historical GS-W legacy unified PSNR: `{fmt(hist_metric.get('unified_psnr'))}`.",
+        f"6. Current clean GS-W legacy unified PSNR: `{fmt(clean_metric.get('unified_psnr'))}`.",
+        f"7. Current clean GS-W strict intrinsic unified PSNR: `{fmt(strict_metric.get('unified_psnr'))}`.",
         f"8. Historical Gaussian count: `{hist_ckpt['gaussian_count']}`; current clean Gaussian count: `{clean_ckpt['gaussian_count']}`.",
         "",
         "## Current clean 30k configuration status",
@@ -1162,6 +1374,12 @@ def build_summary(
         "",
         "The 1.24 dB historical-vs-clean legacy gap is real under unified re-evaluation, but current evidence points to optimization/code-path non-equivalence rather than split leakage. "
         "Because the final Gaussian count and learned state differ, a matched adapter-path rerun is needed before using the gap to decide GS-W go/no-go.",
+        "",
+        "## Leakage taxonomy",
+        "",
+        "- Training-set leakage: no.",
+        "- Test-appearance leakage: yes for historical legacy evaluation.",
+        "- Evaluation-protocol leakage: no split/GT/size/mask mismatch found in existing renders; appearance protocol differs.",
     ]
     return "\n".join(lines) + "\n"
 

@@ -18,7 +18,7 @@
 ```
 
 - Clean code path: `G:\WL3DGS\Improved_GS-W`
-- Clean branch/head: `main` / `a6e4d0566e4d4b25c7cee39a37410015e9c0f079`
+- Clean branch/head: `main` / `643109114b4d3aa408f3df3e0185204958ef94b8`
 
 ## Historical dirty worktree patch
 
@@ -39,6 +39,10 @@ The dirty historical patch is focused on:
 - `render.py`: protects the rendering-speed probe on small scenes. This affects post-training render utilities, not the training loss.
 
 Full focused historical patch is saved as `HISTORICAL_WORKTREE.patch`.
+
+## Whether historical 30k used these dirty files
+
+Status: **unknown**. The historical run preserves `cfg_args`, logs and outputs, but no immutable source snapshot or dirty-worktree checksum embedded in the run output was found. The current historical repo dirty files are frozen in this audit as the best available local evidence, but the audit does not assume they are exactly the files used on 2026-06-21.
 
 ## Clean-vs-historical relevant file checksums
 

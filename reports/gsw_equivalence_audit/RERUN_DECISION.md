@@ -1,6 +1,8 @@
 # Rerun Decision
 
-Decision class: **D with residual optimization/code-path uncertainty**.
+Primary classification: **D - configuration, data, code and metrics are broadly equivalent for membership/metric comparability, with residual optimization/code-path uncertainty**.
+
+Secondary findings: **B - test-appearance leakage is present in historical legacy evaluation**. Historical training membership is held-out, but historical legacy rendering is not strict because test RGB conditions the appearance branch.
 
 Configuration, split membership, data pixels, camera poses, and the metric pipeline are broadly equivalent for the purpose of judging training membership and metric comparability. The remaining historical-vs-clean PSNR gap is real, but it is not explained by training-view leakage through the split.
 
@@ -10,7 +12,7 @@ Configuration, split membership, data pixels, camera poses, and the metric pipel
 - Image RGB equivalence: `True`.
 - Camera pose equivalence: `True`.
 - Final Gaussian count difference (clean - historical): `7039`.
-- Key configuration mismatches recorded: `6`.
+- Key configuration mismatches recorded: `8`.
 
 ## Main gap source
 

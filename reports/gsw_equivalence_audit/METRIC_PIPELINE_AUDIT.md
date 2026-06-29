@@ -19,4 +19,7 @@ Unified re-evaluation used the same independent image loader and PSNR/MSE/MAE co
 - Full RGB images are used; no mask or crop is applied.
 - Values are decoded through PIL as RGB and scaled to `[0, 1]`.
 - PSNR is computed from full-image MSE as `20 * log10(1 / sqrt(MSE))`, matching `utils.image_utils.psnr`.
-- Existing `results.json` values are copied into `UNIFIED_REEVALUATION.csv` for comparison.
+- Existing `results.json` values are copied into `original_reported_metrics_json` for comparison.
+- Because all audited groups contain the same two files, original-protocol and common-view metrics are identical here.
+- The script marks incompatible dimensions rather than resizing or cropping.
+- LPIPS uses `lpips.LPIPS(net='alex')`, `normalize=True`, `spatial=False`, and tensors in `[0, 1]`; no LPIPS resize/crop path is used.
