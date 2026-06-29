@@ -15,8 +15,10 @@ The local development remote is:
 ## License Notes
 
 The imported upstream tree does not include a top-level `LICENSE` file in the
-snapshot used here. Its rasterizer submodule contains the GraphDECO Gaussian
+snapshot used here. Its rasterizer directory contains the GraphDECO Gaussian
 Splatting license, which permits non-commercial research and evaluation use.
 
 Before public redistribution or paper artifact release, the license status of
 the GS-W top-level code should be confirmed with the upstream repository/authors.
+Until then, this development repository should be treated as non-commercial
+research-only and kept private.

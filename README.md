@@ -25,6 +25,15 @@
     
 This repository contains the official author's implementation associated with the paper "Gaussian in the Wild: 3D Gaussian Splatting for Unconstrained Image Collections", which can be found [here](javascript:void(0)).
 
+## Provenance and License Notice
+
+This `Improved_GS-W` working repository was initialized from the official GS-W repository:
+
+- Upstream: https://github.com/EastbeanZhang/Gaussian-Wild.git
+- Pinned upstream commit: `fbe12be37cc0054296e2ef8631a6579b2a136ea7`
+
+The pinned upstream snapshot does not include a top-level `LICENSE` file. The included Gaussian rasterizer code carries the GraphDECO/Inria Gaussian-Splatting license for non-commercial research and evaluation use. Until the top-level GS-W license is confirmed with upstream, this repository should be treated as non-commercial research-only and kept private for development.
+
 ![Teaser image](assets/teaser.png)
 
 |              ![Pipeline](assets/pipeline.png)               |
