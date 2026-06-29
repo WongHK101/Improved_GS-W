@@ -54,7 +54,7 @@ This run evaluates whether strict GS-W is a viable baseline/method base on Track
 
 ## Held-Out Leakage Verification
 
-All held-out views were tested with RGB perturbations (`zero`, fixed `noise`, `channel_swap`) on the 10-iteration smoke checkpoint.
+All held-out views were first tested with RGB perturbations (`zero`, fixed `noise`, `channel_swap`) on the 10-iteration smoke checkpoint, then re-tested on the final 30000-iteration checkpoint.
 
 - `strict_intrinsic`: max/mean difference was exactly `0.0` for both held-out views and all perturbations.
 - `strict_nearest_train`: max/mean difference was exactly `0.0` for both held-out views and all perturbations.
