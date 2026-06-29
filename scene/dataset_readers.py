@@ -24,6 +24,7 @@ from utils.sh_utils import SH2RGB
 from scene.gaussian_model import BasicPointCloud
 import pandas as pd
 import glob
+import hashlib
 
 COLMAP_BINARY_FILES = ("images.bin", "cameras.bin")
 COLMAP_TEXT_FILES = ("images.txt", "cameras.txt")
@@ -46,6 +47,8 @@ class SceneInfo(NamedTuple):
     test_cameras: list
     nerf_normalization: dict
     ply_path: str
+    split_manifest_path: str = ""
+    split_summary: dict = None
 
 def getNerfppNorm(cam_info):
     def get_center_and_diag(cam_centers):
@@ -98,6 +101,85 @@ def resolve_colmap_sparse_model_path(path, sparse_subdir=""):
         print("[COLMAP] Multiple sparse model candidates found: " + ", ".join(f"{label}={sparse_path}" for label, sparse_path in available))
     print(f"[COLMAP] Using sparse model path ({selected_label}): {selected_path}")
     return selected_path
+
+def normalize_image_name(name):
+    return str(name).replace("\\", "/").split("/")[-1]
+
+def ordered_unique_or_error(names, label):
+    seen = set()
+    ordered = []
+    duplicates = []
+    for name in names:
+        normalized = normalize_image_name(name)
+        if normalized in seen:
+            duplicates.append(normalized)
+        seen.add(normalized)
+        ordered.append(normalized)
+    if duplicates:
+        raise ValueError(f"Duplicate image names in {label}: {sorted(set(duplicates))}")
+    return ordered
+
+def sha256_lines(lines):
+    payload = "".join(f"{line}\n" for line in lines).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
+
+def load_frozen_split_manifest(split_file):
+    if not split_file:
+        raise ValueError("--split_file is required when --split_mode frozen_manifest is used.")
+    if not os.path.exists(split_file):
+        raise FileNotFoundError(f"Split manifest does not exist: {split_file}")
+    with open(split_file, "r", encoding="utf-8") as handle:
+        manifest = json.load(handle)
+    train_names = ordered_unique_or_error(manifest.get("train_images", []), "train_images")
+    test_names = ordered_unique_or_error(manifest.get("test_images", []), "test_images")
+    if not train_names:
+        raise ValueError("Frozen split manifest has an empty train_images list.")
+    if not test_names:
+        raise ValueError("Frozen split manifest has an empty test_images list.")
+    overlap = set(train_names).intersection(test_names)
+    if overlap:
+        raise ValueError(f"Frozen split manifest train/test overlap: {sorted(overlap)}")
+    return manifest, train_names, test_names
+
+def split_cameras_from_manifest(cam_infos, split_file):
+    manifest, train_names, test_names = load_frozen_split_manifest(split_file)
+    camera_by_name = {}
+    duplicates = []
+    for cam in cam_infos:
+        name = normalize_image_name(cam.image_name)
+        if name in camera_by_name:
+            duplicates.append(name)
+        camera_by_name[name] = cam
+    if duplicates:
+        raise ValueError(f"Duplicate registered camera image names: {sorted(set(duplicates))}")
+
+    registered = set(camera_by_name)
+    manifest_names = set(train_names).union(test_names)
+    missing = sorted(registered - manifest_names)
+    extra = sorted(manifest_names - registered)
+    if missing:
+        raise ValueError(f"Frozen split manifest is missing registered images: {missing}")
+    if extra:
+        raise ValueError(f"Frozen split manifest contains images not registered by COLMAP: {extra}")
+
+    train_cameras = [camera_by_name[name] for name in train_names]
+    test_cameras = [camera_by_name[name] for name in test_names]
+    summary = {
+        "split_mode": "frozen_manifest",
+        "manifest_path": os.path.abspath(split_file),
+        "manifest_sha256": hashlib.sha256(Path(split_file).read_bytes()).hexdigest(),
+        "registered_count": len(cam_infos),
+        "train_count": len(train_cameras),
+        "test_count": len(test_cameras),
+        "registered_sha256": sha256_lines(sorted(registered)),
+        "train_sha256": sha256_lines(train_names),
+        "test_sha256": sha256_lines(test_names),
+        "train_images": train_names,
+        "test_images": test_names,
+        "protocol": manifest.get("protocol", ""),
+        "ordering_rule": manifest.get("ordering_rule", ""),
+    }
+    return train_cameras, test_cameras, manifest, summary
 
 def readColmapCameras(cam_extrinsics, cam_intrinsics, images_folder):
     cam_infos = []
@@ -166,7 +248,7 @@ def storePly(path, xyz, rgb):
     ply_data = PlyData([vertex_element])
     ply_data.write(path)
 
-def readColmapSceneInfo(path, images, eval, llffhold=8, sparse_subdir=""):
+def readColmapSceneInfo(path, images, eval, llffhold=8, sparse_subdir="", split_mode="legacy", split_file=""):
     sparse_path = resolve_colmap_sparse_model_path(path, sparse_subdir)
     try:
         cameras_extrinsic_file = os.path.join(sparse_path, "images.bin")
@@ -184,7 +266,15 @@ def readColmapSceneInfo(path, images, eval, llffhold=8, sparse_subdir=""):
     cam_infos_unsorted = readColmapCameras(cam_extrinsics=cam_extrinsics, cam_intrinsics=cam_intrinsics, images_folder=os.path.join(path, reading_dir))
     cam_infos = sorted(cam_infos_unsorted.copy(), key = lambda x : x.image_name)
 
-    if eval:
+    split_summary = {"split_mode": split_mode}
+    if split_mode == "frozen_manifest":
+        train_cam_infos, test_cam_infos, _, split_summary = split_cameras_from_manifest(cam_infos, split_file)
+        print(
+            "[Split] frozen_manifest loaded: "
+            f"train={len(train_cam_infos)} test={len(test_cam_infos)} "
+            f"manifest={split_file}"
+        )
+    elif split_mode == "legacy" and eval:
         root_dir=os.path.dirname(path)
         tsv = glob.glob(os.path.join(root_dir, '*.tsv'))[0]
         scene_name = os.path.basename(tsv)[:-4]  
@@ -210,9 +300,21 @@ def readColmapSceneInfo(path, images, eval, llffhold=8, sparse_subdir=""):
         
         train_cam_infos =[ c for c in cam_infos if c.uid in img_ids_train]
         test_cam_infos =[ c for c in cam_infos if c.uid in img_ids_test]
-    else:
+        split_summary = {
+            "split_mode": "legacy_tsv",
+            "train_count": len(train_cam_infos),
+            "test_count": len(test_cam_infos),
+        }
+    elif split_mode == "legacy":
         train_cam_infos = cam_infos
         test_cam_infos = []
+        split_summary = {
+            "split_mode": "legacy_all_train",
+            "train_count": len(train_cam_infos),
+            "test_count": len(test_cam_infos),
+        }
+    else:
+        raise ValueError(f"Unsupported split_mode: {split_mode}")
 
     nerf_normalization = getNerfppNorm(train_cam_infos)
 
@@ -235,7 +337,9 @@ def readColmapSceneInfo(path, images, eval, llffhold=8, sparse_subdir=""):
                            train_cameras=train_cam_infos,
                            test_cameras=test_cam_infos,
                            nerf_normalization=nerf_normalization,
-                           ply_path=ply_path)
+                           ply_path=ply_path,
+                           split_manifest_path=os.path.abspath(split_file) if split_file else "",
+                           split_summary=split_summary)
     return scene_info
 
 def readCamerasFromTransforms(path, transformsfile, white_background, extension=".png",data_perturb=None,split="train"):

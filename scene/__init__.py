@@ -12,6 +12,7 @@
 import os
 import random
 import json
+import shutil
 from utils.system_utils import searchForMaxIteration
 from scene.dataset_readers import sceneLoadTypeCallbacks
 from scene.gaussian_model import GaussianModel
@@ -41,7 +42,14 @@ class Scene:
         self.test_cameras = {}
 
         if os.path.exists(os.path.join(args.source_path, "sparse")):
-            scene_info = sceneLoadTypeCallbacks["Colmap"](args.source_path, args.images, args.eval, sparse_subdir=args.sparse_subdir)   #
+            scene_info = sceneLoadTypeCallbacks["Colmap"](
+                args.source_path,
+                args.images,
+                args.eval,
+                sparse_subdir=args.sparse_subdir,
+                split_mode=args.split_mode,
+                split_file=args.split_file,
+            )   #
         elif os.path.exists(os.path.join(args.source_path, "transforms_train.json")):
             print("Found transforms_train.json file, assuming Blender data set!")
             scene_info = sceneLoadTypeCallbacks["Blender"](args.source_path, args.white_background, args.eval,data_perturb=args.data_perturb) #
@@ -61,6 +69,11 @@ class Scene:
                 json_cams.append(camera_to_JSON(id, cam))
             with open(os.path.join(self.model_path, "cameras.json"), 'w') as file:
                 json.dump(json_cams, file)             
+            if scene_info.split_manifest_path:
+                shutil.copyfile(scene_info.split_manifest_path, os.path.join(self.model_path, "split_manifest.json"))
+            if scene_info.split_summary:
+                with open(os.path.join(self.model_path, "split_used.json"), "w", encoding="utf-8") as file:
+                    json.dump(scene_info.split_summary, file, indent=2)
 
         if shuffle:
             random.shuffle(scene_info.train_cameras)  # Multi-res consistent random shuffling

@@ -266,8 +266,9 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, debug_fr
                 if args.metrics_after_train :
                     logging.info("Evaluating metrics on testing set...")
                     evaluate_metrics([dataset.model_path],use_logs=True)
-                    logging.info("Evaluating metrics half image on testing set...")
-                    evaluate_metrics_half([dataset.model_path],use_logs=True)
+                    if args.eval_half_after_train:
+                        logging.info("Evaluating metrics half image on testing set...")
+                        evaluate_metrics_half([dataset.model_path],use_logs=True)
                     
             elif args.scene_name=="lego":
                 
@@ -278,8 +279,9 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, debug_fr
                 if args.metrics_after_train :
                     logging.info("Evaluating metrics on testing set...")
                     evaluate_metrics([dataset.model_path],use_logs=True)
-                    logging.info("Evaluating metrics half image on testing set...")
-                    evaluate_metrics_half([dataset.model_path],use_logs=True)
+                    if args.eval_half_after_train:
+                        logging.info("Evaluating metrics half image on testing set...")
+                        evaluate_metrics_half([dataset.model_path],use_logs=True)
             gaussians.set_eval(False)
             
 def prepare_output_and_logger(args):    
@@ -383,6 +385,7 @@ if __name__ == "__main__":
     
     parser.add_argument("--render_after_train",  action='store_true', default=True)
     parser.add_argument("--metrics_after_train",  action='store_true', default=True)
+    parser.add_argument("--eval_half_after_train",  action='store_true', default=False)
     parser.add_argument("--data_perturb", nargs="+", type=str, default=[])#for lego ["color","occ"]
     
     args = parser.parse_args(sys.argv[1:])         

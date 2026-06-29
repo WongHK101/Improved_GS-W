@@ -52,6 +52,8 @@ class ModelParams(ParamGroup):
         self._model_path = ""
         self._images = "images"
         self.sparse_subdir = ""
+        self.split_mode = "legacy"
+        self.split_file = ""
         self._resolution = 1#-1
         self._white_background = False
         self.data_device = "cuda"
