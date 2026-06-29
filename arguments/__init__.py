@@ -54,6 +54,7 @@ class ModelParams(ParamGroup):
         self.sparse_subdir = ""
         self.split_mode = "legacy"
         self.split_file = ""
+        self.test_appearance_mode = "legacy_target_rgb"
         self._resolution = 1#-1
         self._white_background = False
         self.data_device = "cuda"
@@ -144,6 +145,12 @@ def get_combined_args(parser : ArgumentParser):
     cmdlne_string = sys.argv[1:]
     cfgfile_string = "Namespace()"
     args_cmdline = parser.parse_args(cmdlne_string)
+    cli_keys = set()
+    for arg in cmdlne_string:
+        if not arg.startswith("--"):
+            continue
+        key = arg.split("=", 1)[0].lstrip("-").replace("-", "_")
+        cli_keys.add(key)
 
     try:
         cfgfilepath = os.path.join(args_cmdline.model_path, "cfg_args")
@@ -158,7 +165,7 @@ def get_combined_args(parser : ArgumentParser):
     #args_cfgfile args_cmdline
     merged_dict = vars(args_cfgfile).copy()
     for k,v in vars(args_cmdline).items():
-        if v != None:
+        if k in cli_keys or k not in merged_dict or v != None:
             merged_dict[k] = v
     return Namespace(**merged_dict)
 

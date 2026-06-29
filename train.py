@@ -197,7 +197,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, debug_fr
 
             # Log and save
             gaussians.set_eval(True)
-            training_report(tb_writer, iteration, Ll1, loss, l1_loss, iter_start.elapsed_time(iter_end), testing_iterations, scene, render, (pipe, background))
+            training_report(tb_writer, iteration, Ll1, loss, l1_loss, iter_start.elapsed_time(iter_end), testing_iterations, scene, render, (pipe, background), args)
             gaussians.set_eval(False)
             if (iteration in saving_iterations):
                 logging.info("[ITER {}] Saving Gaussians".format(iteration))
@@ -242,7 +242,9 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, debug_fr
                 torch.cuda.empty_cache()
                 logging.info(f"Rendering testing set [{len(scene.getTestCameras())}]...")
                 render_set(dataset.model_path, "test", iteration, scene.getTestCameras(), gaussians, pipe, \
-                background,render_multi_view=True,render_s2d_inter=True)
+                background,render_multi_view=True,render_s2d_inter=True,
+                appearance_mode=args.test_appearance_mode,
+                train_views_for_appearance=scene.getTrainCameras())
             
                 torch.cuda.empty_cache()
                 logging.info(f"Rendering training set [{len(scene.getTrainCameras())}]...")
@@ -306,7 +308,7 @@ def prepare_output_and_logger(args):
         print("Tensorboard not available: not logging progress")
     return tb_writer
 
-def training_report(tb_writer, iteration, Ll1, loss, l1_loss, elapsed, testing_iterations, scene : Scene, renderFunc, renderArgs):
+def training_report(tb_writer, iteration, Ll1, loss, l1_loss, elapsed, testing_iterations, scene : Scene, renderFunc, renderArgs, args=None):
     if tb_writer:
         tb_writer.add_scalar('train_loss_patches/l1_loss', Ll1.item(), iteration)
         tb_writer.add_scalar('train_loss_patches/total_loss', loss.item(), iteration)
@@ -322,8 +324,26 @@ def training_report(tb_writer, iteration, Ll1, loss, l1_loss, elapsed, testing_i
             if config['cameras'] and len(config['cameras']) > 0:
                 l1_test = 0.0
                 psnr_test = 0.0
+                appearance_mapping = {}
+                if config["name"] == "test" and args and args.test_appearance_mode == "strict_nearest_train":
+                    appearance_mapping = {
+                        test_view.image_name: train_view
+                        for test_view, train_view, _ in nearest_train_appearance_sources(config["cameras"], scene.getTrainCameras())
+                    }
                 for idx, viewpoint in enumerate(config['cameras']):
-                    image = torch.clamp(renderFunc(viewpoint, scene.gaussians, *renderArgs)["render"], 0.0, 1.0)
+                    appearance_mode = "legacy_target_rgb"
+                    appearance_source = None
+                    if config["name"] == "test" and args:
+                        appearance_mode = args.test_appearance_mode
+                        viewpoint.forbid_appearance_input = appearance_mode in ["strict_intrinsic", "strict_nearest_train"]
+                        appearance_source = appearance_mapping.get(viewpoint.image_name)
+                    image = torch.clamp(renderFunc(
+                        viewpoint,
+                        scene.gaussians,
+                        *renderArgs,
+                        appearance_mode=appearance_mode,
+                        appearance_source_camera=appearance_source,
+                    )["render"], 0.0, 1.0)
                     gt_image = torch.clamp(viewpoint.original_image.to("cuda"), 0.0, 1.0)
                     if tb_writer and (idx < 5):
                         tb_writer.add_images(config['name'] + "_view_{}/render".format(viewpoint.image_name), image[None], global_step=iteration)

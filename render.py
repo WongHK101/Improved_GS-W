@@ -23,7 +23,33 @@ from gaussian_renderer import GaussianModel
 import copy,pickle,time
 from utils.general_utils import *
 import imageio
+import csv
 #
+
+def nearest_train_appearance_sources(test_views, train_views):
+    mapping = []
+    if not train_views:
+        raise ValueError("strict_nearest_train requires at least one train camera.")
+    for test_view in test_views:
+        best = None
+        test_center = test_view.camera_center
+        for train_view in train_views:
+            distance = float(torch.norm(test_center - train_view.camera_center).item())
+            key = (distance, train_view.image_name)
+            if best is None or key < best[0]:
+                best = (key, train_view)
+        mapping.append((test_view, best[1], best[0][0]))
+    return mapping
+
+def write_appearance_mapping(model_path, iteration, mapping):
+    path = os.path.join(model_path, "test", "ours_{}".format(iteration), "appearance_mapping.csv")
+    makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", newline="", encoding="utf-8") as handle:
+        writer = csv.writer(handle)
+        writer.writerow(["test_image", "train_appearance_source", "pose_center_distance"])
+        for test_view, train_view, distance in mapping:
+            writer.writerow([test_view.image_name, train_view.image_name, f"{distance:.10f}"])
+    return path
 
 
 def render_interpolate(model_path, name, iteration, views, gaussians, pipeline, background,select_idxs=None):
@@ -178,7 +204,8 @@ def render_intrinsic(model_path, name, iteration, views, gaussians, pipeline, ba
     gaussians.colornet_inter_weight=1.0
     
 def render_set(model_path, name, iteration, views, gaussians, pipeline, background,\
-    render_multi_view=False,render_s2d_inter=False):
+    render_multi_view=False,render_s2d_inter=False, appearance_mode="legacy_target_rgb",
+    train_views_for_appearance=None):
     '''
     '''
     render_path = os.path.join(model_path, name, "ours_{}".format(iteration), "renders")
@@ -187,6 +214,9 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
         mask_path=os.path.join(model_path, name, "ours_{}".format(iteration), "masks")
         makedirs(mask_path, exist_ok=True)
 
+    if appearance_mode in ["strict_intrinsic", "strict_nearest_train"]:
+        render_multi_view = False
+        render_s2d_inter = False
     if render_multi_view:
         multi_view_path=os.path.join(model_path, name, "ours_{}".format(iteration), "multi_view")
     if render_s2d_inter:
@@ -195,8 +225,23 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
     makedirs(gts_path, exist_ok=True)
     
     origin_views=copy.deepcopy(views)
+    appearance_mapping = []
+    if appearance_mode == "strict_nearest_train":
+        appearance_mapping = nearest_train_appearance_sources(views, train_views_for_appearance)
+        write_appearance_mapping(model_path, iteration, appearance_mapping)
     for idx, view in enumerate(tqdm(views, desc="Rendering progress")):
-        rendering = render(view, gaussians, pipeline, background)["render"]       
+        view.forbid_appearance_input = appearance_mode in ["strict_intrinsic", "strict_nearest_train"]
+        appearance_source = None
+        if appearance_mode == "strict_nearest_train":
+            appearance_source = appearance_mapping[idx][1]
+        rendering = render(
+            view,
+            gaussians,
+            pipeline,
+            background,
+            appearance_mode=appearance_mode,
+            appearance_source_camera=appearance_source,
+        )["render"]
         gt = view.original_image[0:3, :, :]
 
         if gaussians.use_features_mask:
@@ -249,7 +294,9 @@ def render_sets(args,dataset : ModelParams, iteration : int, pipeline : Pipeline
                 test_rendering_speed(scene.getTrainCameras(), gaussians, pipeline, background,use_cache=True)
         
             render_set(dataset.model_path, "test", scene.loaded_iter, scene.getTestCameras(), gaussians, pipeline, \
-                background,render_multi_view=True,render_s2d_inter=True)
+                background,render_multi_view=True,render_s2d_inter=True,
+                appearance_mode=args.test_appearance_mode,
+                train_views_for_appearance=scene.getTrainCameras())
             
             
         if not skip_train:

@@ -84,8 +84,12 @@ class Scene:
         for resolution_scale in resolution_scales:
             print("Loading Training Cameras")
             self.train_cameras[resolution_scale] = cameraList_from_camInfos(scene_info.train_cameras, resolution_scale, args)#各个分辨率下的相机Camera(id,R,T,fovx,fovt,image,h，W,MVP矩阵)
+            for camera in self.train_cameras[resolution_scale]:
+                camera.split_role = "train"
             print("Loading Test Cameras")
             self.test_cameras[resolution_scale] = cameraList_from_camInfos(scene_info.test_cameras, resolution_scale, args)
+            for camera in self.test_cameras[resolution_scale]:
+                camera.split_role = "test"
 
         if self.loaded_iter:
             self.gaussians.load_ckpt_ply(os.path.join(self.model_path,

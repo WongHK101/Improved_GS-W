@@ -97,6 +97,7 @@ class GaussianModel:
             
         if "use_wo_adative" in args.__dict__.keys() :
             self.use_wo_adative=args.use_wo_adative      
+        self.point_features_dim=getattr(args, "features_dim", 16 * getattr(args, "map_num", 0))
         
         self.use_color_net=args.use_color_net
         if self.use_color_net:
@@ -108,6 +109,12 @@ class GaussianModel:
             else: raise NotImplementedError
                 
         self.use_features_mask=args.use_features_mask
+
+    def assert_can_use_camera_appearance(self, viewpoint_camera):
+        if getattr(viewpoint_camera, "forbid_appearance_input", False):
+            raise RuntimeError(
+                "STRICT HELD-OUT VIOLATION: test camera image was passed to map_generator."
+            )
 
     
     @property
@@ -436,6 +443,7 @@ class GaussianModel:
         
         
     def forward(self,viewpoint_camera,store_cache=False):
+        self.assert_can_use_camera_appearance(viewpoint_camera)
         img=viewpoint_camera.original_image.cuda()
         camera_center=viewpoint_camera.camera_center
         _xyz,_opacity,_features_intrinsic=self._xyz,self._opacity,self._features_intrinsic
@@ -499,6 +507,54 @@ class GaussianModel:
         self._point_features=_point_features
         self.view_direction=view_direction
         self._xyz_dealed=_xyz
+
+    def forward_with_point_features(self, viewpoint_camera, point_features, store_cache=False):
+        camera_center=viewpoint_camera.camera_center
+        _xyz,_opacity,_features_intrinsic=self._xyz,self._opacity,self._features_intrinsic
+        view_direction=(_xyz - camera_center.repeat(_xyz.shape[0], 1))
+        view_direction=view_direction/(view_direction.norm(dim=1, keepdim=True)+1e-5)
+        _point_features=point_features.to(_xyz.device)
+        if self.use_color_net:
+            if self.use_colors_precomp:
+                if self.color_net_type in ["naive"]:
+                    self._pre_comp_color=self.color_net(
+                        _xyz,
+                        _features_intrinsic,
+                        _point_features,
+                        view_direction,
+                        inter_weight=self.colornet_inter_weight,
+                        store_cache=store_cache,
+                    )
+                else: raise NotImplementedError
+            else:
+                if self.color_net_type in ["naive"]:
+                    self._features_dealed=self.color_net(
+                        _xyz,
+                        _features_intrinsic,
+                        _point_features,
+                        view_direction,
+                        inter_weight=self.colornet_inter_weight,
+                        store_cache=store_cache,
+                    )
+                else: raise NotImplementedError
+        else:
+            self._features_dealed=_features_intrinsic
+        self._opacity_dealed=_opacity
+        self._point_features=_point_features
+        self.view_direction=view_direction
+        self._xyz_dealed=_xyz
+
+    def forward_intrinsic(self, viewpoint_camera):
+        if not (self.use_kmap_pjmap or self.use_okmap):
+            raise NotImplementedError
+        point_features=torch.zeros((self._xyz.shape[0], self.point_features_dim), device=self._xyz.device)
+        self.map_pts_norm=torch.zeros((self._xyz.shape[0], self.map_num, 2), device=self._xyz.device)
+        if self.use_features_mask:
+            self.features_mask=torch.ones((1, 1, int(viewpoint_camera.image_height), int(viewpoint_camera.image_width)), device=self._xyz.device)
+        self.forward_with_point_features(viewpoint_camera, point_features, store_cache=False)
+
+    def forward_interpolate(self, viewpoint_camera, point_features):
+        self.forward_with_point_features(viewpoint_camera, point_features, store_cache=False)
         
     def forward_cache(self,viewpoint_camera):
         camera_center=viewpoint_camera.camera_center

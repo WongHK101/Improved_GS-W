@@ -26,7 +26,8 @@ def rasterizer_color_and_radii(outputs):
     return outputs[0], outputs[1]
 
 def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, scaling_modifier = 1.0, override_color = None,\
-    other_viewpoint_camera=None,store_cache=False,use_cache=False,point_features=None):
+    other_viewpoint_camera=None,store_cache=False,use_cache=False,point_features=None,
+    appearance_mode="legacy_target_rgb", appearance_source_camera=None):
     """
     Render the scene. 
     
@@ -34,12 +35,27 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
     """
     if other_viewpoint_camera is not None:#render using other camera center
         viewpoint_camera.camera_center=other_viewpoint_camera.camera_center
-    if use_cache:
+    if appearance_mode == "strict_intrinsic":
+        pc.forward_intrinsic(viewpoint_camera)
+    elif appearance_mode == "strict_nearest_train":
+        if appearance_source_camera is None:
+            raise ValueError("strict_nearest_train requires appearance_source_camera.")
+        if getattr(appearance_source_camera, "split_role", "") != "train":
+            raise RuntimeError("strict_nearest_train appearance source must be a train camera.")
+        pc.forward(appearance_source_camera, store_cache=True)
         pc.forward_cache(viewpoint_camera)
-    elif point_features is not None:
-        pc.forward_interpolate(viewpoint_camera,point_features)
+    elif appearance_mode == "legacy_target_rgb":
+        if getattr(viewpoint_camera, "split_role", "") == "test" and not getattr(viewpoint_camera, "_legacy_warning_printed", False):
+            print("NOT STRICT HELD-OUT: TEST RGB CONDITIONS APPEARANCE")
+            viewpoint_camera._legacy_warning_printed = True
+        if use_cache:
+            pc.forward_cache(viewpoint_camera)
+        elif point_features is not None:
+            pc.forward_interpolate(viewpoint_camera,point_features)
+        else:
+            pc.forward(viewpoint_camera,store_cache)
     else:
-        pc.forward(viewpoint_camera,store_cache)
+        raise ValueError(f"Unsupported appearance_mode: {appearance_mode}")
     # Create zero tensor. We will use it to make pytorch return gradients of the 2D (screen-space) means
     screenspace_points = torch.zeros_like(pc.get_xyz, dtype=pc.get_xyz.dtype, requires_grad=True, device="cuda") + 0     #[Npoint,3]
     try:
