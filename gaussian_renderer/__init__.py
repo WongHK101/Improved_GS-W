@@ -16,6 +16,15 @@ from scene.gaussian_model import GaussianModel
 from utils.sh_utils import eval_sh
 import numpy as np
 
+def raster_settings_kwargs(**kwargs):
+    fields = getattr(GaussianRasterizationSettings, "_fields", ())
+    if "antialiasing" in fields and "antialiasing" not in kwargs:
+        kwargs["antialiasing"] = False
+    return kwargs
+
+def rasterizer_color_and_radii(outputs):
+    return outputs[0], outputs[1]
+
 def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, scaling_modifier = 1.0, override_color = None,\
     other_viewpoint_camera=None,store_cache=False,use_cache=False,point_features=None):
     """
@@ -47,7 +56,7 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
     camera_center=viewpoint_camera.camera_center
 
         
-    raster_settings = GaussianRasterizationSettings(
+    raster_settings = GaussianRasterizationSettings(**raster_settings_kwargs(
         image_height=int(viewpoint_camera.image_height),
         image_width=int(viewpoint_camera.image_width),
         tanfovx=tanfovx,
@@ -60,7 +69,7 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
         campos=camera_center,            #3
         prefiltered=False,
         debug=pipe.debug
-    )
+    ))
 
     rasterizer = GaussianRasterizer(raster_settings=raster_settings)
 
@@ -100,7 +109,7 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
         
 
     # Rasterize visible Gaussians to image, obtain their radii (on screen). 
-    rendered_image, radii = rasterizer(
+    rendered_image, radii = rasterizer_color_and_radii(rasterizer(
         means3D = means3D,       # [Npoint,3]
         means2D = means2D,      #[Npoint,3]
         shs = shs,              #[Npoint,16,3]
@@ -108,7 +117,7 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
         opacities = opacity,     #[Npoint,1]  
         scales = scales,            #[Npoint,3] 
         rotations = rotations,      #[Npoint,4]    
-        cov3D_precomp = cov3D_precomp)
+        cov3D_precomp = cov3D_precomp))
 
     # Those Gaussians that were frustum culled or had a radius of 0 were not visible.
     # They will be excluded from value updates used in the splitting criteria.
