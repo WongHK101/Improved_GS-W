@@ -1,6 +1,6 @@
 # Environment Equivalence Audit
 
-Generated: 2026-06-30T05:47:22
+Generated: 2026-06-30T05:59:23
 
 ## Current audit/runtime environment
 
@@ -24,7 +24,7 @@ Generated: 2026-06-30T05:47:22
 
 ```text
 $ nvidia-smi
-Tue Jun 30 05:47:22 2026
+Tue Jun 30 05:59:23 2026
 +-----------------------------------------------------------------------------+
 | NVIDIA-SMI 526.98       Driver Version: 526.98       CUDA Version: 12.0     |
 |-------------------------------+----------------------+----------------------+
@@ -33,7 +33,7 @@ Tue Jun 30 05:47:22 2026
 |                               |                      |               MIG M. |
 |===============================+======================+======================|
 |   0  NVIDIA GeForce ... WDDM  | 00000000:01:00.0  On |                  Off |
-|  0%   43C    P2    70W / 450W |   2801MiB / 24564MiB |      2%      Default |
+|  0%   42C    P2    70W / 450W |   2816MiB / 24564MiB |      2%      Default |
 |                               |                      |                  N/A |
 +-------------------------------+----------------------+----------------------+
 
@@ -52,10 +52,10 @@ Tue Jun 30 05:47:22 2026
 |    0   N/A  N/A     14896    C+G   D:\todesk\ToDesk.exe            N/A      |
 |    0   N/A  N/A     20468    C+G   C:\Windows\System32\dwm.exe     N/A      |
 |    0   N/A  N/A     22688    C+G   ...03.112\msedgewebview2.exe    N/A      |
+|    0   N/A  N/A     23292      C   ...onda\envs\3dgs\python.exe    N/A      |
 |    0   N/A  N/A     23616    C+G   ...03.112\msedgewebview2.exe    N/A      |
 |    0   N/A  N/A     24748    C+G   ...2nqsd0c76g0\app\Codex.exe    N/A      |
 |    0   N/A  N/A     29256    C+G   ...��\PCAnomalyDetection.exe    N/A      |
-|    0   N/A  N/A     29936      C   ...onda\envs\3dgs\python.exe    N/A      |
 |    0   N/A  N/A     30592    C+G   ...\current_new\DingTalk.exe    N/A      |
 |    0   N/A  N/A     31932    C+G   C:\Windows\explorer.exe         N/A      |
 |    0   N/A  N/A     36440    C+G   ...5n1h2txyewy\SearchApp.exe    N/A      |

@@ -8,4 +8,5 @@ warning: in the working copy of 'reports/gsw_equivalence_audit/HISTORICAL_VS_CLE
 warning: in the working copy of 'reports/gsw_equivalence_audit/HISTORICAL_WORKTREE.patch', LF will be replaced by CRLF the next time Git touches it
 warning: in the working copy of 'reports/gsw_equivalence_audit/METRIC_PIPELINE_AUDIT.md', LF will be replaced by CRLF the next time Git touches it
 warning: in the working copy of 'reports/gsw_equivalence_audit/RERUN_DECISION.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'reports/gsw_equivalence_audit/logs/git_diff_check.log', LF will be replaced by CRLF the next time Git touches it
 warning: in the working copy of 'tools/audit/gsw_equivalence_audit.py', LF will be replaced by CRLF the next time Git touches it

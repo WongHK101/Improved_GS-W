@@ -474,6 +474,8 @@ def evaluate_existing_renders() -> tuple[list[dict[str, Any]], list[dict[str, An
                 "group": label,
                 "method_dir": str(method_dir),
                 "render_file": render_path.name,
+                "render_path": str(render_path),
+                "gt_path": str(gt_path),
                 "gt_exists": gt_path.exists(),
             }
             if gt_path.exists():

@@ -1,6 +1,6 @@
 # GS-W Historical vs Clean Equivalence Audit Summary
 
-Generated: 2026-06-30T05:47:24
+Generated: 2026-06-30T05:59:24
 
 ## Key answers
 
