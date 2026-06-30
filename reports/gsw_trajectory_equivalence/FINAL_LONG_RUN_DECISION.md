@@ -12,10 +12,10 @@
 4. Clean vs historical code cannot be fully localized without instrumenting/running the historical dirty worktree. The clean historical-compatible proxy C diverges from B at the same early point already seen in A1/A2.
 5. Periodic evaluation has a plausible BatchNorm state side effect because `map_generator.eval()` is not called, but the recorded Trackmobile 30k cfgs only evaluate at 30000, not 7000.
 
-## Most credible current root cause for the 1.24 dB gap
+## Current interpretation of the 1.235 dB gap
 
-The strongest current evidence is same-code same-seed trajectory non-determinism: A1/A2 split by iteration 10 despite identical initialization, sampled images and traced RNG hashes, and end at 6987 vs 6752 Gaussians by iteration 1000. Camera order, adapter path and legacy TSV are not supported as primary causes by the short-run evidence.
+Same-code same-seed training-trajectory non-determinism is experimentally demonstrated and is a credible candidate factor for the historical-clean gap: A1/A2 split by iteration 10 despite identical initialization, sampled images and traced RNG hashes, and end at 6987 vs 6752 Gaussians by iteration 1000. However, the existing 1000-iteration evidence does not prove that this factor is sufficient to explain the full 1.235 dB gap. Historical dirty-worktree differences remain unresolved.
 
 ## Unique long-run recommendation
 
-**C - Need clean repeated-seed 30k** if any new 30k is approved. The next long run should estimate strict GS-W seed/operator variance under the clean strict protocol, not chase the historical non-strict legacy result. No historical matched 30k is approved by this audit.
+**C - Need clean repeated-seed 30k** if any new 30k is approved. The next long run should estimate strict GS-W seed/operator variance under the clean strict protocol. No historical matched 30k is recommended because the historical evaluation is non-strict and exact reproduction of that leaked legacy result has low research value.
