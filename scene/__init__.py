@@ -49,6 +49,7 @@ class Scene:
                 sparse_subdir=args.sparse_subdir,
                 split_mode=args.split_mode,
                 split_file=args.split_file,
+                legacy_tsv_uid_source=args.legacy_tsv_uid_source,
             )   #
         elif os.path.exists(os.path.join(args.source_path, "transforms_train.json")):
             print("Found transforms_train.json file, assuming Blender data set!")

@@ -54,6 +54,7 @@ class ModelParams(ParamGroup):
         self.sparse_subdir = ""
         self.split_mode = "legacy"
         self.split_file = ""
+        self.legacy_tsv_uid_source = "intrinsic"
         self.test_appearance_mode = "legacy_target_rgb"
         self._resolution = 1#-1
         self._white_background = False

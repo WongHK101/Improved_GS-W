@@ -181,7 +181,7 @@ def split_cameras_from_manifest(cam_infos, split_file):
     }
     return train_cameras, test_cameras, manifest, summary
 
-def readColmapCameras(cam_extrinsics, cam_intrinsics, images_folder):
+def readColmapCameras(cam_extrinsics, cam_intrinsics, images_folder, uid_source="intrinsic"):
     cam_infos = []
   
     for idx, key in enumerate(cam_extrinsics):
@@ -195,7 +195,12 @@ def readColmapCameras(cam_extrinsics, cam_intrinsics, images_folder):
         height = intr.height
         width = intr.width
 
-        uid = intr.id
+        if uid_source == "extrinsic":
+            uid = extr.id
+        elif uid_source == "intrinsic":
+            uid = intr.id
+        else:
+            raise ValueError(f"Unsupported camera uid_source: {uid_source}")
         R = np.transpose(qvec2rotmat(extr.qvec))
         T = np.array(extr.tvec)
 
@@ -248,7 +253,7 @@ def storePly(path, xyz, rgb):
     ply_data = PlyData([vertex_element])
     ply_data.write(path)
 
-def readColmapSceneInfo(path, images, eval, llffhold=8, sparse_subdir="", split_mode="legacy", split_file=""):
+def readColmapSceneInfo(path, images, eval, llffhold=8, sparse_subdir="", split_mode="legacy", split_file="", legacy_tsv_uid_source="intrinsic"):
     sparse_path = resolve_colmap_sparse_model_path(path, sparse_subdir)
     try:
         cameras_extrinsic_file = os.path.join(sparse_path, "images.bin")
@@ -263,7 +268,12 @@ def readColmapSceneInfo(path, images, eval, llffhold=8, sparse_subdir="", split_
 
     reading_dir = "images" if images == None else images
 
-    cam_infos_unsorted = readColmapCameras(cam_extrinsics=cam_extrinsics, cam_intrinsics=cam_intrinsics, images_folder=os.path.join(path, reading_dir))
+    cam_infos_unsorted = readColmapCameras(
+        cam_extrinsics=cam_extrinsics,
+        cam_intrinsics=cam_intrinsics,
+        images_folder=os.path.join(path, reading_dir),
+        uid_source=legacy_tsv_uid_source,
+    )
     cam_infos = sorted(cam_infos_unsorted.copy(), key = lambda x : x.image_name)
 
     split_summary = {"split_mode": split_mode}

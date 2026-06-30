@@ -22,10 +22,10 @@ Most are protocol/data-path differences: historical `source_path` points to the 
 
 ## Main interpretation
 
-The 1.24 dB historical-vs-clean legacy gap is real under unified re-evaluation, but current evidence points to optimization/code-path non-equivalence rather than split leakage. Because the final Gaussian count and learned state differ, a matched adapter-path rerun is needed before using the gap to decide GS-W go/no-go.
+The 1.24 dB historical-vs-clean legacy gap is real under unified re-evaluation, but current evidence only observes that the final optimization states differ. The cause of the training-trajectory divergence has not yet been localized, so final Gaussian count and learned-weight differences must be treated as outcomes, not root causes.
 
 ## Leakage taxonomy
 
 - Training-set leakage: no.
-- Test-appearance leakage: yes for historical legacy evaluation.
+- Test-appearance leakage: yes for historical legacy evaluation. This is an independent leakage finding, not a data/adapter non-equivalence classification.
 - Evaluation-protocol leakage: no split/GT/size/mask mismatch found in existing renders; appearance protocol differs.

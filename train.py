@@ -29,6 +29,10 @@ from render import *
 from metrics import evaluate as evaluate_metrics
 from metrics_half import evaluate as evaluate_metrics_half
 import pickle
+import csv
+import hashlib
+import json
+import random
 
 import lpips
 from arguments import *
@@ -37,6 +41,179 @@ try:
     TENSORBOARD_FOUND = True
 except ImportError:
     TENSORBOARD_FOUND = False
+
+
+TRACE_ITERATIONS = {1, 10, 100, 499, 500, 501, 1000}
+
+
+def _digest_bytes(payload):
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _tensor_digest(tensor):
+    return _digest_bytes(tensor.detach().float().cpu().numpy().tobytes())
+
+
+def _state_digest():
+    row = {
+        "python_random_state_hash": _digest_bytes(repr(random.getstate()).encode("utf-8")),
+        "numpy_random_state_hash": _digest_bytes(repr(np.random.get_state()).encode("utf-8")),
+        "torch_cpu_rng_state_hash": _digest_bytes(torch.get_rng_state().cpu().numpy().tobytes()),
+    }
+    if torch.cuda.is_available():
+        row["torch_cuda_rng_state_hash"] = _digest_bytes(torch.cuda.get_rng_state().cpu().numpy().tobytes())
+    else:
+        row["torch_cuda_rng_state_hash"] = ""
+    return row
+
+
+def _module_digest(module):
+    hashes = []
+    for key, value in module.state_dict().items():
+        hashes.append(f"{key}:{_tensor_digest(value)}")
+    return _digest_bytes("\n".join(hashes).encode("utf-8"))
+
+
+def _optimizer_groups(optimizer):
+    groups = []
+    for group in optimizer.param_groups:
+        numel = sum(param.numel() for param in group["params"])
+        groups.append({"name": group.get("name", ""), "numel": int(numel), "lr": float(group.get("lr", 0.0))})
+    return json.dumps(groups, sort_keys=True)
+
+
+def _stats_tensor(tensor):
+    data = tensor.detach().float()
+    return float(data.mean().item()), float(data.std().item())
+
+
+class TrainingTrace:
+    def __init__(self, args):
+        self.enabled = bool(getattr(args, "trace_training_state", False))
+        self.path = getattr(args, "trace_output", "")
+        self.rows = []
+        self.densify_events = []
+        self.stack_rebuilt = False
+        self.selected_random_index = ""
+        self.selected_image_name = ""
+
+    def mark_stack_rebuild(self):
+        self.stack_rebuilt = True
+
+    def mark_selection(self, random_index, image_name):
+        self.selected_random_index = random_index
+        self.selected_image_name = image_name
+
+    def mark_densify(self, iteration, before_count, after_count):
+        self.densify_events.append(f"iter={iteration}:before={before_count}:after={after_count}")
+
+    def maybe_record_initialization(self, scene, gaussians):
+        if not self.enabled:
+            return
+        box_coord = getattr(gaussians, "box_coord", torch.empty(0, device=gaussians._xyz.device))
+        self.rows.append({
+            "event": "initialization",
+            "iteration": 0,
+            "image_name": "",
+            "random_index": "",
+            "viewpoint_stack_rebuilt": "",
+            "gaussian_count": int(gaussians._xyz.shape[0]),
+            "visible_gaussian_count": "",
+            "total_loss": "",
+            "l1_loss": "",
+            "dssim_loss": "",
+            "lpips_loss": "",
+            "box_coord_loss": "",
+            "densification_summary": "",
+            "opacity_mean": float(gaussians.get_opacity.detach().mean().item()),
+            "opacity_std": float(gaussians.get_opacity.detach().std().item()),
+            "scaling_mean": float(gaussians.get_scaling.detach().mean().item()),
+            "scaling_std": float(gaussians.get_scaling.detach().std().item()),
+            "xyz_checksum": _tensor_digest(gaussians._xyz),
+            "features_checksum": _tensor_digest(gaussians._features_intrinsic),
+            "opacity_checksum": _tensor_digest(gaussians._opacity),
+            "scaling_checksum": _tensor_digest(gaussians._scaling),
+            "rotation_checksum": _tensor_digest(gaussians._rotation),
+            "map_generator_checksum": _module_digest(gaussians.map_generator),
+            "color_net_checksum": _module_digest(gaussians.color_net),
+            "box_coord_checksum": _tensor_digest(box_coord),
+            "camera_extent": float(scene.cameras_extent),
+            "spatial_lr_scale": float(gaussians.spatial_lr_scale),
+            "optimizer_groups_json": _optimizer_groups(gaussians.optimizer),
+            "peak_memory_mb": float(torch.cuda.max_memory_allocated() / (1024 * 1024)) if torch.cuda.is_available() else "",
+            "elapsed_ms": "",
+            **_state_digest(),
+        })
+
+    def maybe_record_iteration(
+        self,
+        iteration,
+        gaussians,
+        loss,
+        Ll1,
+        dssim_loss,
+        lpips_loss_value,
+        box_coord_loss_value,
+        visibility_filter,
+        elapsed_ms,
+    ):
+        if not self.enabled or iteration not in TRACE_ITERATIONS:
+            self.stack_rebuilt = False
+            self.selected_random_index = ""
+            self.selected_image_name = ""
+            return
+        opacity_mean, opacity_std = _stats_tensor(gaussians.get_opacity)
+        scaling_mean, scaling_std = _stats_tensor(gaussians.get_scaling)
+        box_coord = getattr(gaussians, "box_coord", torch.empty(0, device=gaussians._xyz.device))
+        self.rows.append({
+            "event": "iteration",
+            "iteration": int(iteration),
+            "image_name": self.selected_image_name,
+            "random_index": self.selected_random_index,
+            "viewpoint_stack_rebuilt": self.stack_rebuilt,
+            "gaussian_count": int(gaussians._xyz.shape[0]),
+            "visible_gaussian_count": int(visibility_filter.sum().item()),
+            "total_loss": float(loss.detach().item()),
+            "l1_loss": float(Ll1.detach().item()),
+            "dssim_loss": float(dssim_loss.detach().item()),
+            "lpips_loss": float(lpips_loss_value),
+            "box_coord_loss": float(box_coord_loss_value),
+            "densification_summary": ";".join(self.densify_events),
+            "opacity_mean": opacity_mean,
+            "opacity_std": opacity_std,
+            "scaling_mean": scaling_mean,
+            "scaling_std": scaling_std,
+            "xyz_checksum": _tensor_digest(gaussians._xyz),
+            "features_checksum": _tensor_digest(gaussians._features_intrinsic),
+            "opacity_checksum": _tensor_digest(gaussians._opacity),
+            "scaling_checksum": _tensor_digest(gaussians._scaling),
+            "rotation_checksum": _tensor_digest(gaussians._rotation),
+            "map_generator_checksum": _module_digest(gaussians.map_generator),
+            "color_net_checksum": _module_digest(gaussians.color_net),
+            "box_coord_checksum": _tensor_digest(box_coord),
+            "camera_extent": "",
+            "spatial_lr_scale": "",
+            "optimizer_groups_json": "",
+            "peak_memory_mb": float(torch.cuda.max_memory_allocated() / (1024 * 1024)) if torch.cuda.is_available() else "",
+            "elapsed_ms": float(elapsed_ms),
+            **_state_digest(),
+        })
+        self.densify_events = []
+        self.stack_rebuilt = False
+        self.selected_random_index = ""
+        self.selected_image_name = ""
+
+    def close(self):
+        if not self.enabled or not self.path:
+            return
+        os.makedirs(os.path.dirname(self.path), exist_ok=True)
+        if not self.rows:
+            return
+        fieldnames = list(self.rows[0].keys())
+        with open(self.path, "w", encoding="utf-8", newline="") as handle:
+            writer = csv.DictWriter(handle, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(self.rows)
 
 def training(dataset, opt, pipe, testing_iterations, saving_iterations, debug_from,args):
     '''
@@ -63,19 +240,22 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, debug_fr
     gaussians = GaussianModel(dataset.sh_degree,args)          
     scene = Scene(dataset, gaussians,shuffle=False)                     
     gaussians.training_setup(opt)                        
+    trace = TrainingTrace(args)
+    trace.maybe_record_initialization(scene, gaussians)
 
     
 
     render_temp_path=os.path.join(dataset.model_path,"train_temp_rendering")
     gt_temp_path=os.path.join(dataset.model_path,"train_temp_gt")
-    if os.path.exists(render_temp_path):
-        shutil.rmtree(render_temp_path)
-    if os.path.exists(gt_temp_path):
-        shutil.rmtree(gt_temp_path)
-    os.makedirs(render_temp_path,exist_ok=True)
-    os.makedirs(gt_temp_path,exist_ok=True)
+    if not args.disable_train_temp_images:
+        if os.path.exists(render_temp_path):
+            shutil.rmtree(render_temp_path)
+        if os.path.exists(gt_temp_path):
+            shutil.rmtree(gt_temp_path)
+        os.makedirs(render_temp_path,exist_ok=True)
+        os.makedirs(gt_temp_path,exist_ok=True)
     
-    if args.use_features_mask:
+    if args.use_features_mask and not args.disable_train_temp_images:
         render_temp_mask_path=os.path.join(dataset.model_path,"train_mask_temp_rendering")
         if os.path.exists(render_temp_mask_path):
             shutil.rmtree(render_temp_mask_path)
@@ -132,7 +312,10 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, debug_fr
         # Pick a random Camera
         if not viewpoint_stack:
             viewpoint_stack = scene.getTrainCameras().copy()          #
-        viewpoint_cam = viewpoint_stack.pop(randint(0, len(viewpoint_stack)-1))  #
+            trace.mark_stack_rebuild()
+        selected_random_index = randint(0, len(viewpoint_stack)-1)
+        viewpoint_cam = viewpoint_stack.pop(selected_random_index)  #
+        trace.mark_selection(selected_random_index, viewpoint_cam.image_name)
 
         # Render
         if (iteration - 1) == debug_from:
@@ -150,22 +333,30 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, debug_fr
             mask=gaussians.features_mask
             mask=torch.nn.functional.interpolate(mask,size=(image.shape[-2:]))
             Ll1 = l1_loss(image*mask, gt_image*mask)                        
-            loss = (1.0 - opt.lambda_dssim) * Ll1 + opt.lambda_dssim * (1.0 - ssim(image*mask, gt_image*mask))
+            dssim_loss = 1.0 - ssim(image*mask, gt_image*mask)
+            loss = (1.0 - opt.lambda_dssim) * Ll1 + opt.lambda_dssim * dssim_loss
             
         else:
             Ll1 = l1_loss(image, gt_image)                     
-            loss = (1.0 - opt.lambda_dssim) * Ll1 + opt.lambda_dssim * (1.0 - ssim(image, gt_image))
+            dssim_loss = 1.0 - ssim(image, gt_image)
+            loss = (1.0 - opt.lambda_dssim) * Ll1 + opt.lambda_dssim * dssim_loss
 
         if args.use_features_mask and iteration>args.features_mask_iters:#2500
             loss+=(torch.square(1-gaussians.features_mask)).mean()*args.features_mask_loss_coef
 
         if args.use_scaling_loss :
             loss+=torch.abs(gaussians.get_scaling).mean()*args.scaling_loss_coef
+        lpips_loss_value = 0.0
         if args.use_lpips_loss: 
-            loss+=lpips_criteria(image,gt_image).mean()*args.lpips_loss_coef
+            lpips_raw = lpips_criteria(image,gt_image).mean()
+            lpips_loss_value = float((lpips_raw * args.lpips_loss_coef).detach().item())
+            loss+=lpips_raw*args.lpips_loss_coef
 
+        box_coord_loss_value = 0.0
         if ( gaussians.use_kmap_pjmap or gaussians.use_okmap) and args.use_box_coord_loss:
-            loss+=torch.relu(torch.abs(gaussians.map_pts_norm)-1).mean()*args.box_coord_loss_coef
+            box_coord_raw = torch.relu(torch.abs(gaussians.map_pts_norm)-1).mean()
+            box_coord_loss_value = float((box_coord_raw * args.box_coord_loss_coef).detach().item())
+            loss+=box_coord_raw*args.box_coord_loss_coef
         psnr_ = psnr(image,gt_image).mean().double()       
         loss.backward()
  
@@ -182,7 +373,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, debug_fr
             ema_loss_for_log = 0.4 * loss.item() + 0.6 * ema_loss_for_log
             ema_psnr_for_log = 0.4 * psnr_ + 0.6 * ema_psnr_for_log
             total_point = gaussians._xyz.shape[0]
-            if iteration%100==0 or iteration==1:
+            if not args.disable_train_temp_images and (iteration%100==0 or iteration==1):
                 torchvision.utils.save_image(image, os.path.join(render_temp_path, f"iter{iteration}_"+viewpoint_cam.image_name + ".png"))
                 torchvision.utils.save_image(gt_image, os.path.join(gt_temp_path, f"iter{iteration}_"+viewpoint_cam.image_name + ".png"))
                 if args.use_features_mask:
@@ -199,7 +390,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, debug_fr
             gaussians.set_eval(True)
             training_report(tb_writer, iteration, Ll1, loss, l1_loss, iter_start.elapsed_time(iter_end), testing_iterations, scene, render, (pipe, background), args)
             gaussians.set_eval(False)
-            if (iteration in saving_iterations):
+            if (not args.disable_save_iterations) and (iteration in saving_iterations):
                 logging.info("[ITER {}] Saving Gaussians".format(iteration))
                 print("\n[ITER {}] Saving Gaussians".format(iteration))
                 scene.save(iteration)
@@ -214,15 +405,40 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, debug_fr
 
                 if iteration > opt.densify_from_iter and iteration % opt.densification_interval == 0:
                     size_threshold = 20 if iteration > opt.opacity_reset_interval else None
+                    densify_before = int(gaussians._xyz.shape[0])
                     gaussians.densify_and_prune(opt.densify_grad_threshold,args.opacity_threshold, scene.cameras_extent, size_threshold)
+                    trace.mark_densify(iteration, densify_before, int(gaussians._xyz.shape[0]))
                 
                 if iteration % opt.opacity_reset_interval == 0 or (dataset.white_background and iteration == opt.densify_from_iter):
                     gaussians.reset_opacity()
 
             # Optimizer step
             if iteration < opt.iterations:
+                trace.maybe_record_iteration(
+                    iteration,
+                    gaussians,
+                    loss,
+                    Ll1,
+                    dssim_loss,
+                    lpips_loss_value,
+                    box_coord_loss_value,
+                    visibility_filter,
+                    iter_start.elapsed_time(iter_end),
+                )
                 gaussians.optimizer.step()
                 gaussians.optimizer.zero_grad(set_to_none = True)
+            else:
+                trace.maybe_record_iteration(
+                    iteration,
+                    gaussians,
+                    loss,
+                    Ll1,
+                    dssim_loss,
+                    lpips_loss_value,
+                    box_coord_loss_value,
+                    visibility_filter,
+                    iter_start.elapsed_time(iter_end),
+                )
 
     #drawing training loss curve
     fig = plt.figure()
@@ -285,6 +501,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, debug_fr
                         logging.info("Evaluating metrics half image on testing set...")
                         evaluate_metrics_half([dataset.model_path],use_logs=True)
             gaussians.set_eval(False)
+    trace.close()
             
 def prepare_output_and_logger(args):    
     if not args.model_path:
@@ -407,8 +624,18 @@ if __name__ == "__main__":
     parser.add_argument("--metrics_after_train",  action='store_true', default=True)
     parser.add_argument("--eval_half_after_train",  action='store_true', default=False)
     parser.add_argument("--data_perturb", nargs="+", type=str, default=[])#for lego ["color","occ"]
+    parser.add_argument("--trace_training_state", action="store_true", default=False)
+    parser.add_argument("--trace_output", type=str, default="")
+    parser.add_argument("--disable_render_after_train", action="store_true", default=False)
+    parser.add_argument("--disable_metrics_after_train", action="store_true", default=False)
+    parser.add_argument("--disable_save_iterations", action="store_true", default=False)
+    parser.add_argument("--disable_train_temp_images", action="store_true", default=False)
     
     args = parser.parse_args(sys.argv[1:])         
+    if args.disable_render_after_train:
+        args.render_after_train = False
+    if args.disable_metrics_after_train:
+        args.metrics_after_train = False
     args.save_iterations.append(args.iterations)     
     args=args_init.argument_init(args)
     print("Optimizing " + args.model_path)
