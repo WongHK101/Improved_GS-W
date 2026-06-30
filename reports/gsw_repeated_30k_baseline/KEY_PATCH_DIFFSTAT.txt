@@ -1,0 +1,22 @@
+ .../gsw_repeated_30k_baseline/EVAL_STATE_AUDIT.md  |  14 +
+ .../EVAL_STATE_FIX_AUDIT.md                        |  27 ++
+ .../EVAL_STATE_RENDER_INVARIANCE.csv               |  10 +
+ .../EVAL_STATE_RENDER_ROWS.csv                     |  25 +
+ .../EVAL_STATE_TEST_RESULTS.csv                    |   4 +
+ .../EVAL_STATE_TEST_RESULTS.md                     |   9 +
+ .../FROZEN_SPLIT_TEST_RESULTS.json                 |  36 ++
+ .../PRE_POST_FIX_RENDER_COMPARISON.csv             |   7 +
+ .../STRICT_LEAKAGE_TEST_RESULTS.csv                |  19 +
+ .../STRICT_LEAKAGE_TEST_RESULTS.json               | 117 +++++
+ .../STRICT_NEAREST_MAPPING.csv                     |   3 +
+ .../split_manifest_negative_cases/duplicate.json   |  12 +
+ .../split_manifest_negative_cases/empty_test.json  |  21 +
+ .../split_manifest_negative_cases/empty_train.json |  10 +
+ .../split_manifest_negative_cases/extra.json       |  25 +
+ .../split_manifest_negative_cases/missing.json     |  23 +
+ .../split_manifest_negative_cases/overlap.json     |  12 +
+ .../windows_paths.json                             |  24 +
+ scene/gaussian_model.py                            |  50 +-
+ tests/test_eval_state_mode.py                      |  90 ++++
+ tools/audit/gsw_eval_state_audit.py                | 513 +++++++++++++++++++++
+ 21 files changed, 1039 insertions(+), 12 deletions(-)
