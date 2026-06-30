@@ -1,0 +1,10 @@
+check,max_abs_pixel_diff,mean_abs_pixel_diff,mode
+pre_post_legacy_bug_vs_fixed,0.8011182546615601,0.016386751318350434,legacy_target_rgb
+fixed_forward_vs_reverse,0.0,0.0,legacy_target_rgb
+fixed_repeat_forward,0.0,0.0,legacy_target_rgb
+pre_post_legacy_bug_vs_fixed,0.0,0.0,strict_intrinsic
+fixed_forward_vs_reverse,0.0,0.0,strict_intrinsic
+fixed_repeat_forward,0.0,0.0,strict_intrinsic
+pre_post_legacy_bug_vs_fixed,0.6120296716690063,0.009112979052588344,strict_nearest_train
+fixed_forward_vs_reverse,0.0,0.0,strict_nearest_train
+fixed_repeat_forward,0.0,0.0,strict_nearest_train

@@ -1,0 +1,117 @@
+{
+  "errors": [],
+  "iteration": 30000,
+  "legacy_changed": true,
+  "legacy_min_diff": 1e-06,
+  "legacy_unchanged_views": [],
+  "model_path": "G:\\wl3dgs\\3dgs_runs\\improved_gsw_strict_30k_decision_20260630\\self_Trackmobile_4650TM_Mobile_Railcar_Mover",
+  "nearest_train_mapping": [
+    {
+      "pose_center_distance": 1.5382812023162842,
+      "test_image": "0001.jpg",
+      "train_appearance_source": "0002.jpg"
+    },
+    {
+      "pose_center_distance": 1.2534600496292114,
+      "test_image": "0009.jpg",
+      "train_appearance_source": "0010.jpg"
+    }
+  ],
+  "results": {
+    "0001.jpg": {
+      "legacy_target_rgb": {
+        "channel_swap": {
+          "max_abs_diff": 1.740770936012268,
+          "mean_abs_diff": 0.01673726923763752
+        },
+        "noise": {
+          "max_abs_diff": 1.4735043048858643,
+          "mean_abs_diff": 0.03602803871035576
+        },
+        "zero": {
+          "max_abs_diff": 1.9631010293960571,
+          "mean_abs_diff": 0.07569228112697601
+        }
+      },
+      "strict_intrinsic": {
+        "channel_swap": {
+          "max_abs_diff": 0.0,
+          "mean_abs_diff": 0.0
+        },
+        "noise": {
+          "max_abs_diff": 0.0,
+          "mean_abs_diff": 0.0
+        },
+        "zero": {
+          "max_abs_diff": 0.0,
+          "mean_abs_diff": 0.0
+        }
+      },
+      "strict_nearest_train": {
+        "channel_swap": {
+          "max_abs_diff": 0.0,
+          "mean_abs_diff": 0.0
+        },
+        "noise": {
+          "max_abs_diff": 0.0,
+          "mean_abs_diff": 0.0
+        },
+        "zero": {
+          "max_abs_diff": 0.0,
+          "mean_abs_diff": 0.0
+        }
+      }
+    },
+    "0009.jpg": {
+      "legacy_target_rgb": {
+        "channel_swap": {
+          "max_abs_diff": 0.469884991645813,
+          "mean_abs_diff": 0.006884378381073475
+        },
+        "noise": {
+          "max_abs_diff": 1.2790024280548096,
+          "mean_abs_diff": 0.013522178865969181
+        },
+        "zero": {
+          "max_abs_diff": 0.9973083734512329,
+          "mean_abs_diff": 0.026611700654029846
+        }
+      },
+      "strict_intrinsic": {
+        "channel_swap": {
+          "max_abs_diff": 0.0,
+          "mean_abs_diff": 0.0
+        },
+        "noise": {
+          "max_abs_diff": 0.0,
+          "mean_abs_diff": 0.0
+        },
+        "zero": {
+          "max_abs_diff": 0.0,
+          "mean_abs_diff": 0.0
+        }
+      },
+      "strict_nearest_train": {
+        "channel_swap": {
+          "max_abs_diff": 0.0,
+          "mean_abs_diff": 0.0
+        },
+        "noise": {
+          "max_abs_diff": 0.0,
+          "mean_abs_diff": 0.0
+        },
+        "zero": {
+          "max_abs_diff": 0.0,
+          "mean_abs_diff": 0.0
+        }
+      }
+    }
+  },
+  "source_path": "G:\\wl3dgs\\3dgs_undistorted\\max1600\\self_Trackmobile_4650TM_Mobile_Railcar_Mover",
+  "split_file": "G:\\WL3DGS\\Improved_GS-W\\splits\\TRACKMOBILE_SPLIT.json",
+  "strict_tolerance": 1e-07,
+  "test_cameras": [
+    "0001.jpg",
+    "0009.jpg"
+  ]
+}

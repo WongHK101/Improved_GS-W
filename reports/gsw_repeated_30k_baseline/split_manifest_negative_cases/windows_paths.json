@@ -1,0 +1,24 @@
+{
+  "scene": "unit_test",
+  "protocol": "llff_hold_8",
+  "ordering_rule": "unit test",
+  "train_images": [
+    "C:\\tmp\\0002.jpg",
+    "C:\\tmp\\0003.jpg",
+    "C:\\tmp\\0004.jpg",
+    "C:\\tmp\\0005.jpg",
+    "C:\\tmp\\0006.jpg",
+    "C:\\tmp\\0007.jpg",
+    "C:\\tmp\\0008.jpg",
+    "C:\\tmp\\0010.jpg",
+    "C:\\tmp\\0011.jpg",
+    "C:\\tmp\\0012.jpg",
+    "C:\\tmp\\0013.jpg",
+    "C:\\tmp\\0014.jpg",
+    "C:\\tmp\\0015.jpg"
+  ],
+  "test_images": [
+    "C:\\tmp\\0001.jpg",
+    "C:\\tmp\\0009.jpg"
+  ]
+}

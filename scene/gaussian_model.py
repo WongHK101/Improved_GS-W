@@ -763,24 +763,50 @@ class GaussianModel:
         self.xyz_gradient_accum[update_filter] += torch.norm(viewspace_point_tensor.grad[update_filter,:2], dim=-1, keepdim=True) 
         self.denom[update_filter] += 1
         
+    def _capture_eval_state(self):
+        state = {
+            "eval_mode": self.eval_mode,
+            "use_features_mask": getattr(self, "use_features_mask", None),
+        }
+        if self.use_color_net:
+            state["color_net_training"] = self.color_net.training
+            state["color_net_use_drop_out"] = getattr(self.color_net, "use_drop_out", None)
+        if self.use_kmap_pjmap or self.use_okmap:
+            state["map_generator_training"] = self.map_generator.training
+            state["map_generator_use_features_mask"] = getattr(self.map_generator, "use_features_mask", None)
+        return state
+
     def set_eval(self,eval=True):
+        if not hasattr(self, "_eval_state_stack"):
+            self._eval_state_stack = []
+
         if eval:
+            self._eval_state_stack.append(self._capture_eval_state())
             self.eval_mode=True
 
             if self.use_color_net:
-                self.color_net=self.color_net.eval()
-                self.color_net_origin_use_drop_out=self.color_net.use_drop_out
-                self.color_net.use_drop_out=False
+                self.color_net.eval()
+                if hasattr(self.color_net, "use_drop_out"):
+                    self.color_net.use_drop_out=False
                 
-            if  self.use_kmap_pjmap or self.use_okmap: 
-                self.origin_use_features_mask=self.map_generator.use_features_mask
-                self.map_generator.use_features_mask=False
+            if  self.use_kmap_pjmap or self.use_okmap:
+                self.map_generator.eval()
+                if hasattr(self.map_generator, "use_features_mask"):
+                    self.map_generator.use_features_mask=False
                 self.use_features_mask=False
         else:
-            self.eval_mode=False
+            state = self._eval_state_stack.pop() if self._eval_state_stack else None
+            if state is None:
+                self.eval_mode=False
+                return
+            self.eval_mode=state["eval_mode"]
             if self.use_color_net:
-                self.color_net=self.color_net.train()
-                self.color_net.use_drop_out=self.color_net_origin_use_drop_out
-            if self.use_kmap_pjmap or self.use_okmap: 
-                self.use_features_mask=self.origin_use_features_mask
-                self.map_generator.use_features_mask=self.origin_use_features_mask
+                self.color_net.train(state.get("color_net_training", True))
+                if state.get("color_net_use_drop_out") is not None:
+                    self.color_net.use_drop_out=state["color_net_use_drop_out"]
+            if self.use_kmap_pjmap or self.use_okmap:
+                self.map_generator.train(state.get("map_generator_training", True))
+                if state.get("use_features_mask") is not None:
+                    self.use_features_mask=state["use_features_mask"]
+                if state.get("map_generator_use_features_mask") is not None:
+                    self.map_generator.use_features_mask=state["map_generator_use_features_mask"]

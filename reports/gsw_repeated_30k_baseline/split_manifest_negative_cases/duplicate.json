@@ -1,0 +1,12 @@
+{
+  "scene": "unit_test",
+  "protocol": "llff_hold_8",
+  "ordering_rule": "unit test",
+  "train_images": [
+    "0001.jpg",
+    "0001.jpg"
+  ],
+  "test_images": [
+    "0002.jpg"
+  ]
+}

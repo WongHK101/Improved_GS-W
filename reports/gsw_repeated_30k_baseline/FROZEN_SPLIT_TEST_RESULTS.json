@@ -1,0 +1,36 @@
+{
+  "manifest": "G:\\WL3DGS\\Improved_GS-W\\splits\\TRACKMOBILE_SPLIT.json",
+  "manifest_sha256": "c65cc61677ffb46cd329d57fc72d30ed40d42e0f9a47d75c5a0931950c9f2cd7",
+  "negative_cases": {
+    "duplicate": "Duplicate image names in train_images: ['0001.jpg']",
+    "empty_test": "Frozen split manifest has an empty test_images list.",
+    "empty_train": "Frozen split manifest has an empty train_images list.",
+    "extra": "Frozen split manifest contains images not registered by COLMAP: ['9999.jpg']",
+    "missing_registered": "Frozen split manifest is missing registered images: ['0009.jpg']",
+    "overlap": "Frozen split manifest train/test overlap: ['0001.jpg']"
+  },
+  "reader_order_invariance": "passed",
+  "scene": "G:\\wl3dgs\\3dgs_undistorted\\max1600\\self_Trackmobile_4650TM_Mobile_Railcar_Mover",
+  "test_count": 2,
+  "test_names": [
+    "0001.jpg",
+    "0009.jpg"
+  ],
+  "train_count": 13,
+  "train_names": [
+    "0002.jpg",
+    "0003.jpg",
+    "0004.jpg",
+    "0005.jpg",
+    "0006.jpg",
+    "0007.jpg",
+    "0008.jpg",
+    "0010.jpg",
+    "0011.jpg",
+    "0012.jpg",
+    "0013.jpg",
+    "0014.jpg",
+    "0015.jpg"
+  ],
+  "windows_path_matching": "passed"
+}
