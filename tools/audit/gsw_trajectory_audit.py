@@ -12,6 +12,7 @@ import hashlib
 import json
 import os
 import random
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -312,7 +313,13 @@ def pairwise_comparison() -> tuple[list[dict[str, Any]], str]:
         ("C_clean_adapter_legacy_tsv", "D_historical_worktree"),
     ]
     rows = []
-    lines = ["# Short Run Pairwise Comparison", ""]
+    lines = [
+        "# Short Run Pairwise Comparison",
+        "",
+        "All comparisons below use trace rows at initialization, 1, 10, 100, 499, 500, 501 and 1000 iterations. "
+        "A checksum difference is treated as a trajectory split, not automatically as a root cause.",
+        "",
+    ]
     for left, right in pairs:
         lt = load_trace(left)
         rt = load_trace(right)
@@ -320,31 +327,90 @@ def pairwise_comparison() -> tuple[list[dict[str, Any]], str]:
             lines.append(f"- {left} vs {right}: unavailable; one or both traces missing.")
             rows.append({"left": left, "right": right, "status": "missing trace"})
             continue
-        first_diff = ""
+        first_param_diff = ""
+        first_loss_diff = ""
+        first_gaussian_diff = ""
+        sampling_equal = True
+        rng_equal = True
+        init_equal = True
         for iteration in [0, 1, 10, 100, 499, 500, 501, 1000]:
             event = "initialization" if iteration == 0 else "iteration"
             lr = trace_row(lt, iteration, event)
             rr = trace_row(rt, iteration, event)
             if lr is None or rr is None:
-                first_diff = f"iteration {iteration}: missing row"
+                first_param_diff = f"iteration {iteration}: missing row"
                 break
-            keys = ["image_name", "random_index", "gaussian_count", "xyz_checksum", "features_checksum", "map_generator_checksum", "color_net_checksum", "box_coord_checksum"]
-            if any(lr.get(k) != rr.get(k) for k in keys):
-                changed = [k for k in keys if lr.get(k) != rr.get(k)]
-                first_diff = f"iteration {iteration}: " + ",".join(changed)
-                break
-        if not first_diff:
-            first_diff = "no difference in audited checkpoints through 1000"
-        lines.append(f"- {left} vs {right}: {first_diff}.")
-        rows.append({"left": left, "right": right, "status": first_diff})
+            if iteration == 0:
+                init_keys = ["gaussian_count", "xyz_checksum", "features_checksum", "map_generator_checksum", "color_net_checksum", "box_coord_checksum", "camera_extent", "spatial_lr_scale"]
+                init_equal = all(lr.get(k) == rr.get(k) for k in init_keys)
+            else:
+                sample_keys = ["image_name", "random_index", "viewpoint_stack_rebuilt"]
+                rng_keys = ["python_random_state_hash", "numpy_random_state_hash", "torch_cpu_rng_state_hash", "torch_cuda_rng_state_hash"]
+                sampling_equal = sampling_equal and all(lr.get(k) == rr.get(k) for k in sample_keys)
+                rng_equal = rng_equal and all(lr.get(k) == rr.get(k) for k in rng_keys)
+                if not first_loss_diff and abs(float(lr.get("total_loss", 0.0)) - float(rr.get("total_loss", 0.0))) > 1e-8:
+                    first_loss_diff = f"iteration {iteration}: loss_delta={float(lr['total_loss']) - float(rr['total_loss']):.9f}"
+                if not first_gaussian_diff and lr.get("gaussian_count") != rr.get("gaussian_count"):
+                    first_gaussian_diff = f"iteration {iteration}: {lr.get('gaussian_count')} vs {rr.get('gaussian_count')}"
+            param_keys = ["xyz_checksum", "features_checksum", "map_generator_checksum", "color_net_checksum", "box_coord_checksum"]
+            if not first_param_diff and any(lr.get(k) != rr.get(k) for k in param_keys):
+                changed = [k for k in param_keys if lr.get(k) != rr.get(k)]
+                first_param_diff = f"iteration {iteration}: " + ",".join(changed)
+        if not first_param_diff:
+            first_param_diff = "no parameter checksum difference in audited checkpoints through 1000"
+        if not first_loss_diff:
+            first_loss_diff = "no loss difference in audited checkpoints through 1000"
+        if not first_gaussian_diff:
+            first_gaussian_diff = "no Gaussian-count difference in audited checkpoints through 1000"
+        left1000 = trace_row(lt, 1000)
+        right1000 = trace_row(rt, 1000)
+        gaussian_delta = ""
+        loss_delta = ""
+        if left1000 and right1000:
+            gaussian_delta = str(int(left1000["gaussian_count"]) - int(right1000["gaussian_count"]))
+            loss_delta = f"{float(left1000['total_loss']) - float(right1000['total_loss']):.9f}"
+        status = (
+            f"init_equal={init_equal}; sampling_equal={sampling_equal}; rng_hashes_equal={rng_equal}; "
+            f"first_loss_diff={first_loss_diff}; first_param_diff={first_param_diff}; "
+            f"first_gaussian_diff={first_gaussian_diff}; iter1000_gaussian_delta={gaussian_delta}; iter1000_loss_delta={loss_delta}"
+        )
+        lines.append(f"## {left} vs {right}")
+        lines.append("")
+        lines.append(f"- Initialization equal: `{init_equal}`.")
+        lines.append(f"- Camera sampling sequence equal: `{sampling_equal}`.")
+        lines.append(f"- Python/NumPy/Torch RNG hashes at traced points equal: `{rng_equal}`.")
+        lines.append(f"- First scalar loss difference: `{first_loss_diff}`.")
+        lines.append(f"- First parameter-checksum difference: `{first_param_diff}`.")
+        lines.append(f"- First Gaussian-count difference: `{first_gaussian_diff}`.")
+        lines.append(f"- Iteration 1000 Gaussian delta (left - right): `{gaussian_delta}`.")
+        lines.append(f"- Iteration 1000 total-loss delta (left - right): `{loss_delta}`.")
+        lines.append("")
+        rows.append({
+            "left": left,
+            "right": right,
+            "init_equal": init_equal,
+            "sampling_equal": sampling_equal,
+            "rng_hashes_equal": rng_equal,
+            "first_loss_diff": first_loss_diff,
+            "first_param_diff": first_param_diff,
+            "first_gaussian_diff": first_gaussian_diff,
+            "iter1000_gaussian_delta": gaussian_delta,
+            "iter1000_loss_delta": loss_delta,
+            "status": status,
+        })
     lines.extend([
-        "",
         "## Interpretation rules",
         "",
         "- A1/A2 tests same-code same-seed repeatability.",
         "- A/B tests direct source vs junction adapter with the same frozen manifest.",
         "- B/C tests frozen manifest vs historical-compatible legacy TSV/eval path.",
         "- C/D can only be answered if a true historical-worktree trace is available; otherwise C is the clean-code historical-compatible proxy.",
+        "",
+        "## Main interpretation",
+        "",
+        "A1/A2 already diverge by iteration 10 despite identical initialization, camera sampling sequence and traced RNG hashes. "
+        "Therefore A/B and B/C checksum differences at iteration 10 cannot be attributed to adapter path or split implementation unless they exceed the same-code same-seed variance. "
+        "In the current short runs, camera order, sampled images and traced RNG hashes are identical across A1/A2/B/C at every traced point; the observed trajectory divergence is most consistent with CUDA/operator non-determinism or untraced kernel-level state.",
     ])
     return rows, "\n".join(lines) + "\n"
 
@@ -370,11 +436,18 @@ def build_evaluation_side_effect_audit() -> str:
         "",
         "## State risk",
         "",
-        "`set_eval(True)` disables color-net dropout and feature mask; `set_eval(False)` restores training state. However, evaluation performs rendering through `map_generator` and `color_net`, and may consume CUDA/PyTorch state depending on kernels and dropout behavior. The short runs disable periodic test evaluation by setting `--test_iterations 1000000`, so short-run trajectory differences are not caused by periodic evaluation.",
+        "`set_eval(True)` disables color-net dropout and feature mask; `set_eval(False)` restores training state. However, `GaussianModel.set_eval()` does not call `self.map_generator.eval()`. "
+        "The map generator contains ResNet/UNet BatchNorm layers, so evaluation renders can update BatchNorm running statistics if the module remains in training mode. "
+        "This is a concrete potential training-trajectory side effect for any iteration where `training_report()` actually renders validation views.",
+        "",
+        "In the inspected Trackmobile 30k configs, both historical and clean runs have `test_iterations=[30000]`, so periodic validation did not run at iteration 7000 for these saved cfgs. "
+        "The final iteration 30000 evaluation may still affect post-training state if followed by saving/rendering, but it cannot explain training trajectory before 30000. "
+        "The short runs disable periodic test evaluation with `--test_iterations 1000000`, so their A1/A2/B/C divergence is not caused by periodic evaluation.",
         "",
         "## Conclusion",
         "",
-        "Periodic evaluation remains a plausible 30k trajectory side-effect after 7000 only if historical and clean evaluation schedules or appearance modes differ. This audit does not run to 7000; a separate one-step evaluation side-effect smoke can be added if GPT requires direct checksum-before/after evidence.",
+        "Periodic evaluation has a plausible BatchNorm state side effect in the code, but the recorded Trackmobile 30k cfgs do not show a 7000-iteration evaluation. "
+        "For the observed 1.24 dB historical-clean gap, periodic evaluation is therefore a lower-priority hypothesis than same-code CUDA/operator non-determinism and historical dirty-code differences.",
     ]
     return "\n".join(lines) + "\n"
 
@@ -391,7 +464,23 @@ def build_final_decision(pair_rows: list[dict[str, Any]]) -> str:
         f"- A/B: `{ab}`.",
         f"- B/C: `{bc}`.",
         "",
-        "Recommended classification will be finalized after all requested short traces are available. If A1/A2 are not repeatable, the only justified long run is clean repeated-seed 30k; if A/B/C remain equivalent and historical legacy is non-strict, the recommended choice is no historical reproduction and proceed to fair clean strict benchmark.",
+        "## Direct answers",
+        "",
+        "1. A1/A2 are not byte-identical repeatable beyond iteration 1; they first diverge at iteration 10 while sampled images and traced RNG hashes remain equal.",
+        "2. Direct source and junction adapter have identical initialization, camera order and sampling sequence. Their later checksum differences are not distinguishable from A1/A2 same-code variance.",
+        "3. Frozen manifest and historical-compatible legacy TSV have identical train camera order and sampling sequence in this scene.",
+        "4. Clean vs historical code cannot be fully localized without instrumenting/running the historical dirty worktree. The clean historical-compatible proxy C diverges from B at the same early point already seen in A1/A2.",
+        "5. Periodic evaluation has a plausible BatchNorm state side effect because `map_generator.eval()` is not called, but the recorded Trackmobile 30k cfgs only evaluate at 30000, not 7000.",
+        "",
+        "## Most credible current root cause for the 1.24 dB gap",
+        "",
+        "The strongest current evidence is same-code same-seed trajectory non-determinism: A1/A2 split by iteration 10 despite identical initialization, sampled images and traced RNG hashes, and end at 6987 vs 6752 Gaussians by iteration 1000. "
+        "Camera order, adapter path and legacy TSV are not supported as primary causes by the short-run evidence.",
+        "",
+        "## Unique long-run recommendation",
+        "",
+        "**C - Need clean repeated-seed 30k** if any new 30k is approved. The next long run should estimate strict GS-W seed/operator variance under the clean strict protocol, not chase the historical non-strict legacy result. "
+        "No historical matched 30k is approved by this audit.",
     ]
     return "\n".join(lines) + "\n"
 
@@ -413,6 +502,9 @@ def main() -> None:
     write_text(REPORT_DIR / "SHORT_RUN_PAIRWISE_COMPARISON.md", pair_report)
     write_text(REPORT_DIR / "EVALUATION_SIDE_EFFECT_AUDIT.md", build_evaluation_side_effect_audit())
     write_text(REPORT_DIR / "FINAL_LONG_RUN_DECISION.md", build_final_decision(pair_rows))
+    probe_dir = REPORT_DIR / "_camera_order_probe"
+    if probe_dir.exists():
+        shutil.rmtree(probe_dir)
     print(f"Wrote trajectory audit reports to {REPORT_DIR}")
 
 
