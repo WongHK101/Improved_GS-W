@@ -1,0 +1,5 @@
+scene,method,train_count,trackmobile_scaled_30k_min,smoke300_linear_30k_min,recommended_budget_30k_min,estimated_disk_gb_from_inventory
+self_Steam_Locomotive,official_3dgs,70,40.41,33.5,40.41,0.64
+self_Steam_Locomotive,gsw_strict_intrinsic,70,211.36,117.2,211.36,0.64
+web_Terrestrial,official_3dgs,166,62.23,33.5,62.23,0.83
+web_Terrestrial,gsw_strict_intrinsic,166,325.48,134.0,325.48,0.83

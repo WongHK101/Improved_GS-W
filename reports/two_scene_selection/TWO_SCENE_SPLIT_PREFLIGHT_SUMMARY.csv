@@ -1,0 +1,3 @@
+gsw_test_match,gsw_train_match,hold8_test_match,hold8_train_match,manifest_path,manifest_sha256,official_test_match,official_train_match,role,scene,status,test_count,train_count,train_test_disjoint,union_covers_registered
+True,True,True,True,G:\wl3dgs\Improved_GS-W\reports\two_scene_selection\generated_manifests\self_Steam_Locomotive_SPLIT.json,42b57444323f45313a66a1f328de68062f7d4dfa61efb52092e467c1a9ad8378,True,True,H,self_Steam_Locomotive,PASS,10,70,True,True
+True,True,True,True,G:\wl3dgs\Improved_GS-W\reports\two_scene_selection\generated_manifests\web_Terrestrial_SPLIT.json,567742eebac1d1ede9e726ea254172668b5d63d7bc137f61f7792658d572b0c0,True,True,M,web_Terrestrial,PASS,24,166,True,True
