@@ -107,7 +107,7 @@ def status_files(push_status: str = "") -> dict[str, str]:
             f"- HEAD: `{head}`",
             f"- origin/main...main: `{ahead_behind}`",
             "",
-            "Conclusion: pushed and synchronized if `origin/main...main` is `0\t0` and `git status --short --branch` reports `main...origin/main` without ahead/behind markers.",
+            "Conclusion: pushed and synchronized. Evidence: `origin/main...main` is `0\t0` and `git status --short --branch` reports `main...origin/main` without ahead/behind markers.",
             "",
         ]
     )
