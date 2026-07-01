@@ -1,0 +1,43 @@
+{
+  "H": {
+    "scene": "self_Steam_Locomotive",
+    "source_type": "self-captured",
+    "scene_category": "industrial heritage locomotive",
+    "train_image_count": 70,
+    "log_luminance_std": 0.2238365209845451,
+    "log_luminance_mad": 0.13431453704833984,
+    "log_luminance_p90_p10": 0.6222259342670441,
+    "saturation_ratio_spread": 0.034035915798611115,
+    "dark_ratio_spread": 2.712673611111111e-05,
+    "chromaticity_spread": 0.017669348915417993,
+    "lowfreq_illumination_spread": 0.30196077525615694,
+    "log_luminance_p90_p10_rank_percentile": 1.0,
+    "saturation_ratio_spread_rank_percentile": 0.6,
+    "dark_ratio_spread_rank_percentile": 0.4,
+    "chromaticity_spread_rank_percentile": 0.2,
+    "lowfreq_illumination_spread_rank_percentile": 0.7,
+    "lighting_difficulty_score": 0.5800000000000001,
+    "difficulty_rank": 5
+  },
+  "M": {
+    "scene": "web_Terrestrial",
+    "source_type": "network/public scenic",
+    "scene_category": "public scenic/heritage image collection",
+    "train_image_count": 166,
+    "log_luminance_std": 0.2456771046803006,
+    "log_luminance_mad": 0.16478857398033142,
+    "log_luminance_p90_p10": 0.617068886756897,
+    "saturation_ratio_spread": 0.013791698619631903,
+    "dark_ratio_spread": 0.00810825288704439,
+    "chromaticity_spread": 0.033077508211135864,
+    "lowfreq_illumination_spread": 0.2588235400617123,
+    "log_luminance_p90_p10_rank_percentile": 0.9,
+    "saturation_ratio_spread_rank_percentile": 0.3,
+    "dark_ratio_spread_rank_percentile": 0.6,
+    "chromaticity_spread_rank_percentile": 0.8,
+    "lowfreq_illumination_spread_rank_percentile": 0.5,
+    "lighting_difficulty_score": 0.6199999999999999,
+    "difficulty_rank": 4
+  },
+  "web_median_score": 0.6199999999999999
+}
