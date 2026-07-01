@@ -74,6 +74,10 @@ def copy_logs() -> None:
 
 
 def status_files(push_status: str = "") -> dict[str, str]:
+    head = git_output(IMPROVED_ROOT, ["rev-parse", "HEAD"])
+    branch = git_output(IMPROVED_ROOT, ["branch", "--show-current"])
+    remote = git_output(IMPROVED_ROOT, ["remote", "get-url", "origin"])
+    ahead_behind = git_output(IMPROVED_ROOT, ["rev-list", "--left-right", "--count", "origin/main...main"])
     status = [
         "# Improved_GS-W",
         "",
@@ -94,7 +98,19 @@ def status_files(push_status: str = "") -> dict[str, str]:
         "```",
     ]
     history = git_output(IMPROVED_ROOT, ["log", "--oneline", "-12"])
-    push_text = push_status or "# PUSH_STATUS\n\nPush status is recorded from the latest explicit git push command, if any.\n"
+    push_text = push_status or "\n".join(
+        [
+            "# PUSH_STATUS",
+            "",
+            f"- Remote: `{remote}`",
+            f"- Branch: `{branch}`",
+            f"- HEAD: `{head}`",
+            f"- origin/main...main: `{ahead_behind}`",
+            "",
+            "Conclusion: pushed and synchronized if `origin/main...main` is `0\t0` and `git status --short --branch` reports `main...origin/main` without ahead/behind markers.",
+            "",
+        ]
+    )
     diff = run_cmd(["git", "-C", str(IMPROVED_ROOT), "diff", "HEAD", "--"], timeout=120)
     diff_cached = run_cmd(["git", "-C", str(IMPROVED_ROOT), "diff", "--cached", "--"], timeout=120)
     patch_text = ""
