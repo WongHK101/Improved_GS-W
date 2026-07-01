@@ -1,0 +1,2 @@
+dry_run,gpu,report_dir,run_root,scenes
+True,"{""gpu_name"": ""NVIDIA GeForce RTX 4090"", ""gpu_total_memory_mb"": 24564}",G:\wl3dgs\Improved_GS-W\reports\two_scene_benchmark,G:\wl3dgs\3dgs_runs\two_scene_strict_screening_20260701,"{""H"": ""self_Steam_Locomotive"", ""M"": ""web_Terrestrial""}"
