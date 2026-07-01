@@ -43,8 +43,9 @@ def main() -> int:
         ["label", "render_file", "image_name", "official_gt_sha256", "gsw_gt_sha256", "match"],
     )
     all_match = all(bool(row["match"]) for row in out)
+    title = args.output_csv.stem
     lines = [
-        "# OFFICIAL_SMOKE_GT_CHECKSUM",
+        f"# {title}",
         "",
         f"- Compared against: `{gsw_gt_dir}`",
         f"- All GT decoded RGB checksums match: `{all_match}`",
@@ -61,4 +62,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

@@ -1,0 +1,60 @@
+{
+  "official_stats": {
+    "psnr": {
+      "mean": 11.970663865407309,
+      "sample_std": 0.5836924609278782,
+      "min": 11.302783012390137,
+      "max": 12.383015155792236,
+      "range": 1.0802321434020996
+    },
+    "ssim": {
+      "mean": 0.3515005111694336,
+      "sample_std": 0.030942334818448946,
+      "min": 0.32873207330703735,
+      "max": 0.3867306262254715,
+      "range": 0.05799855291843414
+    },
+    "lpips": {
+      "mean": 0.526439314087232,
+      "sample_std": 0.0037806763551920916,
+      "min": 0.5233048349618912,
+      "max": 0.5306380540132523,
+      "range": 0.007333219051361084
+    }
+  },
+  "gsw_stats": {
+    "psnr": {
+      "mean": 12.6444730758667,
+      "sample_std": 0.226970627793989,
+      "min": 12.440200805664062,
+      "max": 12.88880729675293,
+      "range": 0.4486064910888672
+    },
+    "ssim": {
+      "mean": 0.43471554418404895,
+      "sample_std": 0.009397049354422777,
+      "min": 0.4251989275217056,
+      "max": 0.44398827850818634,
+      "range": 0.018789350986480713
+    },
+    "lpips": {
+      "mean": 0.6361653407414755,
+      "sample_std": 0.009725120503979305,
+      "min": 0.6267451345920563,
+      "max": 0.6461690962314606,
+      "range": 0.019423961639404297
+    }
+  },
+  "delta_gsw_minus_official": {
+    "psnr": 0.6738092104593907,
+    "ssim": 0.08321503301461536,
+    "lpips": 0.10972602665424347
+  },
+  "range_overlap": {
+    "psnr": false,
+    "ssim": false,
+    "lpips": false
+  },
+  "recommendation": "B",
+  "recommendation_reason": "Trackmobile alone should not decide the long-term base if metrics are mixed or near run-to-run variance; verify one stronger appearance-variation scene and one ordinary scenic scene next."
+}
