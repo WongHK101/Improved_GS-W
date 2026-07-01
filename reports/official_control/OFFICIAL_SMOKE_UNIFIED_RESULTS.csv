@@ -1,0 +1,3 @@
+group,label,method_dir,render_count,gt_count,test_image_names,psnr,ssim,lpips,lpips_net,lpips_normalize,full_image
+official_smoke,smoke_10,G:\wl3dgs\3dgs_runs\official_3dgs_strict_repeated_30k_20260701\smoke_10\self_Trackmobile_4650TM_Mobile_Railcar_Mover\test\ours_10,2,2,0001.jpg;0009.jpg,9.163085460662842,0.34291957318782806,0.9829183220863342,alex,True,True
+official_smoke,smoke_300,G:\wl3dgs\3dgs_runs\official_3dgs_strict_repeated_30k_20260701\smoke_300\self_Trackmobile_4650TM_Mobile_Railcar_Mover\test\ours_300,2,2,0001.jpg;0009.jpg,12.502750873565674,0.41366754472255707,0.9421170353889465,alex,True,True

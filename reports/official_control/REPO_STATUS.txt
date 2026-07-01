@@ -1,0 +1,25 @@
+# REPO_STATUS
+
+## Improved_GS-W
+
+```text
+## main...origin/main
+?? reports/official_control/
+?? tools/official_control/
+```
+
+## Official 3DGS
+
+```text
+## HEAD (no branch)
+```
+
+## Official Submodules
+
+```text
+-d8856f60c5384cc1975439193bb627d77d917d77 SIBR_viewers
+ 9c5c2028f6fbee2be239bc4c9421ff894fe4fbe0 submodules/diff-gaussian-rasterization (remotes/origin/dr_aa)
+-5c46b9c07008ae65cb81ab79cd677ecc1934b903 submodules/diff-gaussian-rasterization/third_party/glm
+ 1272e21a282342e89537159e4bad508b19b34157 submodules/fused-ssim (1272e21)
+ 86710c2d4b46680c02301765dd79e465819c8f19 submodules/simple-knn (heads/main)
+```
