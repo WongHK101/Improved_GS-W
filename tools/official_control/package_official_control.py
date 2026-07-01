@@ -17,6 +17,7 @@ from official_control_common import (
 
 
 PACKAGE_NAME = "codex_official_vs_gsw_matched_control"
+GENERATED_PACKAGE_FILES = {"COMMIT_HISTORY.md", "PUSH_STATUS.md", "git_diff.patch"}
 
 
 def add_if_exists(zipf: zipfile.ZipFile, path: Path, arcname: str | None = None, max_bytes: int = 3_000_000) -> None:
@@ -34,27 +35,28 @@ def main() -> int:
         shutil.rmtree(package_dir)
     package_dir.mkdir(parents=True, exist_ok=True)
 
-    # Refresh status files immediately before packaging.
+    for path in REPORT_DIR.glob("*"):
+        if path.name in GENERATED_PACKAGE_FILES:
+            continue
+        if path.is_file():
+            copy_small_file(path, package_dir / path.name, max_bytes=5_000_000)
+
     write_text(
-        REPORT_DIR / "COMMIT_HISTORY.md",
+        package_dir / "COMMIT_HISTORY.md",
         "# COMMIT_HISTORY\n\n```text\n"
         + git_output(IMPROVED_ROOT, ["log", "--oneline", "-12"])
         + "\n```\n",
     )
     write_text(
-        REPORT_DIR / "PUSH_STATUS.md",
+        package_dir / "PUSH_STATUS.md",
         "# PUSH_STATUS\n\n```text\n"
         + git_output(IMPROVED_ROOT, ["rev-list", "--left-right", "--count", "origin/main...main"])
         + "\n```\n",
     )
     write_text(
-        REPORT_DIR / "git_diff.patch",
+        package_dir / "git_diff.patch",
         git_output(IMPROVED_ROOT, ["diff", "--", "tools/official_control", "reports/official_control"]) + "\n",
     )
-
-    for path in REPORT_DIR.glob("*"):
-        if path.is_file():
-            copy_small_file(path, package_dir / path.name, max_bytes=5_000_000)
 
     scripts_dir = package_dir / "scripts" / "tools" / "official_control"
     scripts_dir.mkdir(parents=True, exist_ok=True)
@@ -79,4 +81,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
