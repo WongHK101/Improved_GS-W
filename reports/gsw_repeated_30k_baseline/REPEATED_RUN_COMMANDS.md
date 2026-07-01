@@ -7,6 +7,8 @@
 [R1] conda run -n 3dgs --no-capture-output python train.py --source_path G:\wl3dgs\3dgs_undistorted\max1600\self_Trackmobile_4650TM_Mobile_Railcar_Mover --scene_name self_Trackmobile_4650TM_Mobile_Railcar_Mover --model_path G:\wl3dgs\3dgs_runs\gsw_strict_baseline_v2_repeated_30k_20260630\R1\self_Trackmobile_4650TM_Mobile_Railcar_Mover --resolution 1 --iterations 30000 --split_mode frozen_manifest --split_file G:\WL3DGS\Improved_GS-W\splits\TRACKMOBILE_SPLIT.json --test_appearance_mode strict_intrinsic --test_iterations 1000000 --save_iterations 30000 --disable_render_after_train --disable_metrics_after_train --disable_train_temp_images --quiet
 
 [R2] conda run -n 3dgs --no-capture-output python train.py --source_path G:\wl3dgs\3dgs_undistorted\max1600\self_Trackmobile_4650TM_Mobile_Railcar_Mover --scene_name self_Trackmobile_4650TM_Mobile_Railcar_Mover --model_path G:\wl3dgs\3dgs_runs\gsw_strict_baseline_v2_repeated_30k_20260630\R2\self_Trackmobile_4650TM_Mobile_Railcar_Mover --resolution 1 --iterations 30000 --split_mode frozen_manifest --split_file G:\WL3DGS\Improved_GS-W\splits\TRACKMOBILE_SPLIT.json --test_appearance_mode strict_intrinsic --test_iterations 1000000 --save_iterations 30000 --disable_render_after_train --disable_metrics_after_train --disable_train_temp_images --quiet
+
+[R3] conda run -n 3dgs --no-capture-output python train.py --source_path G:\wl3dgs\3dgs_undistorted\max1600\self_Trackmobile_4650TM_Mobile_Railcar_Mover --scene_name self_Trackmobile_4650TM_Mobile_Railcar_Mover --model_path G:\wl3dgs\3dgs_runs\gsw_strict_baseline_v2_repeated_30k_20260630\R3\self_Trackmobile_4650TM_Mobile_Railcar_Mover --resolution 1 --iterations 30000 --split_mode frozen_manifest --split_file G:\WL3DGS\Improved_GS-W\splits\TRACKMOBILE_SPLIT.json --test_appearance_mode strict_intrinsic --test_iterations 1000000 --save_iterations 30000 --disable_render_after_train --disable_metrics_after_train --disable_train_temp_images --quiet
 ```
 
 ## Rendering and metrics
@@ -25,3 +27,13 @@
 [R3 legacy_target_rgb] conda run -n 3dgs --no-capture-output python render.py --source_path G:\wl3dgs\3dgs_undistorted\max1600\self_Trackmobile_4650TM_Mobile_Railcar_Mover --scene_name self_Trackmobile_4650TM_Mobile_Railcar_Mover --model_path G:\wl3dgs\3dgs_runs\gsw_strict_baseline_v2_repeated_30k_20260630\R3\self_Trackmobile_4650TM_Mobile_Railcar_Mover --resolution 1 --iteration 30000 --split_mode frozen_manifest --split_file G:\wl3dgs\Improved_GS-W\splits\TRACKMOBILE_SPLIT.json --test_appearance_mode legacy_target_rgb --render_output_tag legacy_target_rgb --skip_train --quiet
 [R3 metrics] conda run -n 3dgs --no-capture-output python metrics.py --model_paths G:\wl3dgs\3dgs_runs\gsw_strict_baseline_v2_repeated_30k_20260630\R3\self_Trackmobile_4650TM_Mobile_Railcar_Mover
 ```
+
+## R3 wrapper status
+
+R3 training is complete. The training log reaches `30000/30000`, and the final checkpoint exists at:
+
+```text
+G:\wl3dgs\3dgs_runs\gsw_strict_baseline_v2_repeated_30k_20260630\R3\self_Trackmobile_4650TM_Mobile_Railcar_Mover\ckpts_point_cloud\iteration_30000
+```
+
+The wrapper status file reported `failed` only because the wrapper captured an empty process exit-code string after training. This is a wrapper bookkeeping issue, not a failed training run.
