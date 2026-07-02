@@ -1,0 +1,13 @@
+scene,run_id,status,PSNR,SSIM,LPIPS,Gaussian_count,train_time,peak_memory,checkpoint_size,black_view_count,NaN_detected,strict_leakage_pass,notes
+web_doss_images,web_doss_images-pending-single-run,not_run_pending_gpt_approval,,,,,,,,,,,No corrected GS-W strict 30k designated run exists yet; do not infer metrics.
+web_Trento_Duomo_images,web_Trento_Duomo_images-pending-single-run,not_run_pending_gpt_approval,,,,,,,,,,,No corrected GS-W strict 30k designated run exists yet; do not infer metrics.
+web_Terrestrial,M-G1,success,18.8795162041982,0.7262930621703466,0.5346071335176626,385079,,,168230059,0,False,True,Earliest valid strict_intrinsic run from two-scene screening.
+self_double-action_press,self_double-action_press-pending-single-run,not_run_pending_gpt_approval,,,,,,,,,,,No corrected GS-W strict 30k designated run exists yet; do not infer metrics.
+web_cyprus_images,web_cyprus_images-pending-single-run,not_run_pending_gpt_approval,,,,,,,,,,,No corrected GS-W strict 30k designated run exists yet; do not infer metrics.
+self_CLG899III_Wheel_Loader,self_CLG899III_Wheel_Loader-pending-single-run,not_run_pending_gpt_approval,,,,,,,,,,,No corrected GS-W strict 30k designated run exists yet; do not infer metrics.
+web_metopa_images,web_metopa_images-pending-single-run,not_run_pending_gpt_approval,,,,,,,,,,,No corrected GS-W strict 30k designated run exists yet; do not infer metrics.
+web_statue_images,web_statue_images-pending-single-run,not_run_pending_gpt_approval,,,,,,,,,,,No corrected GS-W strict 30k designated run exists yet; do not infer metrics.
+self_Steam_Locomotive,H-G1,success,19.859954833984375,0.6516539931297303,0.5012504667043686,175115,,,111119883,0,False,True,Earliest valid strict_intrinsic run from two-scene screening.
+web_Baalshamin_images,web_Baalshamin_images-pending-single-run,not_run_pending_gpt_approval,,,,,,,,,,,No corrected GS-W strict 30k designated run exists yet; do not infer metrics.
+self_3000t_Press,self_3000t_Press-pending-single-run,not_run_pending_gpt_approval,,,,,,,,,,,No corrected GS-W strict 30k designated run exists yet; do not infer metrics.
+self_Trackmobile_4650TM_Mobile_Railcar_Mover,Trackmobile-R1,success,12.440200805664062,0.42519891262054443,0.6267451047897339,136793,5465,11008,100696283,0,False,True,"Earliest valid strict_intrinsic repeated run, selected by frozen rule."

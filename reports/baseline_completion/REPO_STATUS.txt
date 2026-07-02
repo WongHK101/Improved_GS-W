@@ -1,0 +1,13 @@
+## git status --short --branch
+## main...origin/main
+?? reports/baseline_completion/
+?? tools/baseline_completion/
+
+## git rev-parse HEAD
+61a055a008eac2c151d4bdbb6363c3fddbbdcee6
+
+## origin/main...main
+0	0
+
+## tags at HEAD
+gsw-strict-12scene-v1
