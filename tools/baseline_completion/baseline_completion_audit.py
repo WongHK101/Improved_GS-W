@@ -51,10 +51,10 @@ SCENE_GROUP = {
 
 
 def run(cmd: list[str], cwd: Path = REPO, check: bool = True) -> str:
-    proc = subprocess.run(cmd, cwd=cwd, text=True, capture_output=True)
+    proc = subprocess.run(cmd, cwd=cwd, text=True, encoding="utf-8", errors="replace", capture_output=True)
     if check and proc.returncode != 0:
         raise RuntimeError(f"command failed: {cmd}\nstdout={proc.stdout}\nstderr={proc.stderr}")
-    return proc.stdout.strip()
+    return (proc.stdout or "").strip()
 
 
 def audit_patch_text(paths: list[str]) -> str:
