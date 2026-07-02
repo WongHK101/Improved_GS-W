@@ -39,6 +39,8 @@ TRAINING_PATHS = [
     "utils/image_utils.py",
 ]
 
+TRAINING_FREEZE_TAG = "gsw-strict-12scene-v1"
+
 SCENE_GROUP = {
     "self_Trackmobile_4650TM_Mobile_Railcar_Mover": "Trackmobile",
     "self_Steam_Locomotive": "H",
@@ -119,6 +121,11 @@ def write_text(path: Path, text: str) -> None:
     path.write_text(text, encoding="utf-8")
 
 
+def training_freeze_commit() -> str:
+    tagged = run(["git", "rev-parse", TRAINING_FREEZE_TAG], check=False)
+    return tagged or run(["git", "rev-parse", "HEAD"])
+
+
 def sha256_file(path: Path) -> str:
     h = hashlib.sha256()
     with path.open("rb") as f:
@@ -194,9 +201,10 @@ def manifest_for(scene: str) -> Path:
 
 def code_freeze_audit() -> None:
     current = run(["git", "rev-parse", "HEAD"])
+    freeze_commit = training_freeze_commit()
     base = "ddc6d8702b2e838dc989d612ca23fb311b79f280"
     strict_tag = "gsw-strict-baseline-v2"
-    freeze_tag = "gsw-strict-12scene-v1"
+    freeze_tag = TRAINING_FREEZE_TAG
     diff_base = run(["git", "diff", "--name-status", base, "--", *TRAINING_PATHS])
     diff_strict = run(["git", "diff", "--name-status", strict_tag, "--", *TRAINING_PATHS])
     diff_freeze = run(["git", "diff", "--name-status", freeze_tag, "--", *TRAINING_PATHS], check=False)
@@ -205,7 +213,8 @@ def code_freeze_audit() -> None:
     lines = [
         "# GSW_12SCENE_CODE_FREEZE_AUDIT",
         "",
-        f"- Current HEAD: `{current}`",
+        f"- Audit package HEAD: `{current}`",
+        f"- Training freeze commit: `{freeze_commit}`",
         f"- Baseline commit required by GPT: `{base}`",
         f"- Existing strict tag: `{strict_tag}`",
         f"- New 12-scene freeze tag: `{freeze_tag}`",
@@ -608,7 +617,7 @@ def external_fairness() -> None:
         {
             "method": "corrected GS-W strict_intrinsic",
             "upstream_repository": "https://github.com/EastbeanZhang/Gaussian-Wild.git",
-            "exact_commit": run(["git", "rev-parse", "HEAD"]),
+            "exact_commit": training_freeze_commit(),
             "license": "inherits Gaussian-Wild; not redistributed as vendor source in package",
             "local_code_modified": "strict split/strict_intrinsic/eval-state/rasterizer compatibility fixes",
             "split": "frozen LLFF hold-8",
@@ -1030,20 +1039,37 @@ def generate() -> None:
 
 
 def package() -> Path:
-    generate()
     REVIEW_ROOT.mkdir(parents=True, exist_ok=True)
     stage = REVIEW_ROOT / "codex_12scene_gsw_and_baseline_audit"
     zip_path = REVIEW_ROOT / "codex_12scene_gsw_and_baseline_audit.zip"
     if stage.exists():
         shutil.rmtree(stage)
     stage.mkdir(parents=True, exist_ok=True)
-    shutil.copytree(REPORT, stage / "reports", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+
+    global REPORT, GENERATED_MANIFESTS, LOG_DIR
+    source_report = REPORT
+    stage_report = stage / "reports"
+    old_report, old_manifests, old_log_dir = REPORT, GENERATED_MANIFESTS, LOG_DIR
+    REPORT = stage_report
+    GENERATED_MANIFESTS = stage_report / "generated_manifests"
+    LOG_DIR = stage_report / "logs"
+    try:
+        generate()
+    finally:
+        REPORT = old_report
+        GENERATED_MANIFESTS = old_manifests
+        LOG_DIR = old_log_dir
+
+    source_logs = source_report / "logs"
+    if source_logs.exists():
+        shutil.copytree(source_logs, stage_report / "logs", dirs_exist_ok=True, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
     shutil.copytree(REPO / "tools" / "baseline_completion", stage / "tools" / "baseline_completion", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
     patches = stage / "patches"
     patches.mkdir(parents=True, exist_ok=True)
     patch_paths = ["tools/baseline_completion", "reports/baseline_completion"]
     (patches / "git_diff.patch").write_text(audit_patch_text(patch_paths), encoding="utf-8")
     (patches / "git_diff_stat.txt").write_text(audit_diff_stat(patch_paths), encoding="utf-8")
+    (patches / "head_commit.patch").write_text(run(["git", "show", "--format=fuller", "--stat", "--patch", "--no-ext-diff", "HEAD"], check=False), encoding="utf-8")
     manifest = [
         "# Package Manifest",
         "",
