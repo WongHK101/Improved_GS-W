@@ -1,6 +1,7 @@
 # GSW_12SCENE_CODE_FREEZE_AUDIT
 
-- Current HEAD: `61a055a008eac2c151d4bdbb6363c3fddbbdcee6`
+- Audit package HEAD: `9030e5c33ce9873b8d6bb5b93cd1cdf412d5118a`
+- Training freeze commit: `61a055a008eac2c151d4bdbb6363c3fddbbdcee6`
 - Baseline commit required by GPT: `ddc6d8702b2e838dc989d612ca23fb311b79f280`
 - Existing strict tag: `gsw-strict-baseline-v2`
 - New 12-scene freeze tag: `gsw-strict-12scene-v1`

@@ -1,7 +1,10 @@
 # COMMIT_HISTORY
 
 ```text
-61a055a (HEAD -> main, tag: gsw-strict-12scene-v1, origin/main) Record triggered third runs and final base decision
+9030e5c (HEAD -> main, origin/main) Resolve annotated freeze tag to commit
+15afe35 Keep baseline audit packaging isolated
+1b079b2 Add baseline completion audit package
+61a055a (tag: gsw-strict-12scene-v1) Record triggered third runs and final base decision
 02e77fc (tag: gsw-two-scene-screening-v1) Add resumable two-scene benchmark runner
 bbb8174 Fix GS-W audit CSV line endings
 5775957 Make two-scene push status explicit
@@ -10,7 +13,4 @@ a8517c3 Clarify two-scene package push status
 e358ca4 Add train-only scene difficulty and selection tools
 99d8542 Keep generated package metadata out of reports
 5945f9a Record official control package metadata
-970e0bc Record matched official and GS-W repeated comparison
-6ab64d5 Add matched official 3DGS control tools
-1404b37 Clarify repeated GS-W baseline provenance
 ```

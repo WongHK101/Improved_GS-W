@@ -1,13 +1,24 @@
 ## git status --short --branch
 ## main...origin/main
-?? reports/baseline_completion/
-?? tools/baseline_completion/
+ M reports/baseline_completion/COMMIT_HISTORY.md
+ M reports/baseline_completion/GSW_12SCENE_CODE_FREEZE_AUDIT.md
+ M reports/baseline_completion/PUSH_STATUS.md
+ M reports/baseline_completion/REPO_STATUS.txt
+ M tools/baseline_completion/baseline_completion_audit.py
+?? reports/baseline_completion/COMPLETION_GAP_AUDIT.csv
+?? reports/baseline_completion/COMPLETION_GAP_AUDIT.md
+?? reports/baseline_completion/EXTERNAL_BASELINE_DIAGNOSTIC_PLAN.csv
+?? reports/baseline_completion/EXTERNAL_BASELINE_DIAGNOSTIC_PLAN.md
+?? reports/baseline_completion/GSW_12SCENE_EXECUTION_PLAN.csv
+?? reports/baseline_completion/GSW_12SCENE_EXECUTION_PLAN.md
+?? tools/baseline_completion/strict_12scene_runner.py
+?? tools/baseline_completion/unified_full_image_eval.py
 
 ## git rev-parse HEAD
-61a055a008eac2c151d4bdbb6363c3fddbbdcee6
+9030e5c33ce9873b8d6bb5b93cd1cdf412d5118a
 
 ## origin/main...main
 0	0
 
 ## tags at HEAD
-gsw-strict-12scene-v1
+(none)

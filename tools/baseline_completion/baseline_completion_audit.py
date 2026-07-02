@@ -21,6 +21,8 @@ REPORT = REPO / "reports" / "baseline_completion"
 GENERATED_MANIFESTS = REPORT / "generated_manifests"
 LOG_DIR = REPORT / "logs"
 REVIEW_ROOT = WL3DGS / "gpt_review_packages"
+PENDING_GSW_RUN_ROOT = WL3DGS / "3dgs_runs" / "gsw_strict_12scene_single_run_20260702"
+GSW_APPROVAL_TOKEN = "GPT_APPROVED_12SCENE_GSW_30K"
 
 SPLIT_ROOT = WL3DGS / "splits" / "max1600_llffhold8_v1"
 DATA_ROOT = WL3DGS / "3dgs_undistorted" / "max1600"
@@ -86,6 +88,20 @@ def audit_diff_stat(paths: list[str]) -> str:
         if path.is_file():
             rows.append(f"{rel} | {len(path.read_text(encoding='utf-8', errors='replace').splitlines())} +")
     return "\n".join(row for row in rows if row)
+
+
+def conda_python(script: Path, args: list[str]) -> list[str]:
+    return ["conda", "run", "-n", "3dgs", "--no-capture-output", "python", str(script), *args]
+
+
+def ps_join(cmd: list[str]) -> str:
+    out = []
+    for arg in cmd:
+        if any(ch.isspace() for ch in arg) or "\\" in arg or ":" in arg:
+            out.append('"' + arg.replace('"', '\\"') + '"')
+        else:
+            out.append(arg)
+    return " ".join(out)
 
 
 def ensure_dirs() -> None:
@@ -961,7 +977,7 @@ def repo_status_files() -> None:
     status = run(["git", "status", "--short", "--branch"])
     head = run(["git", "rev-parse", "HEAD"])
     count = run(["git", "rev-list", "--left-right", "--count", "origin/main...main"], check=False)
-    tags = run(["git", "tag", "--points-at", "HEAD"], check=False)
+    tags = run(["git", "tag", "--points-at", "HEAD"], check=False) or "(none)"
     write_text(
         REPORT / "REPO_STATUS.txt",
         "\n".join(
@@ -977,7 +993,6 @@ def repo_status_files() -> None:
                 "",
                 "## tags at HEAD",
                 tags,
-                "",
             ]
         ),
     )
@@ -1027,6 +1042,290 @@ def summary_report() -> None:
     write_text(REPORT / "BASELINE_COMPLETION_AUDIT_SUMMARY.md", "\n".join(md))
 
 
+def completion_gap_audit() -> None:
+    gsw_rows = read_csv(REPORT / "GSW_STRICT_12SCENE_RESULTS.csv")
+    successes = [r for r in gsw_rows if r.get("status") == "success"]
+    pending = [r for r in gsw_rows if r.get("status") != "success"]
+    official_rows = read_csv(REPORT / "OFFICIAL_12SCENE_PROTOCOL_AUDIT.csv")
+    official_counts = {k: sum(1 for r in official_rows if r.get("class") == k) for k in ["A", "B", "C", "D", "E"]}
+    gap_rows = [
+        {
+            "requirement": "corrected_gsw_strict_12scene_coverage",
+            "status": "incomplete_pending_gpt_approval",
+            "evidence": f"GSW_STRICT_12SCENE_RESULTS.csv has {len(successes)} success rows and {len(pending)} non-success/pending rows.",
+            "missing_or_risk": "9 corrected GS-W strict 30k single-run scenes have not been executed.",
+            "next_action": "After GPT approval, run strict_12scene_runner.py with GPT_APPROVED_12SCENE_GSW_30K=1, then regenerate reports.",
+        },
+        {
+            "requirement": "one_designated_run_per_scene_registry",
+            "status": "complete_for_current_registry",
+            "evidence": "GSW_12SCENE_RUN_REGISTRY.csv has exactly one designated_run_id per scene.",
+            "missing_or_risk": "Pending scenes are command-plan rows, not measured runs.",
+            "next_action": "Use the same designated IDs when GPT approves execution.",
+        },
+        {
+            "requirement": "gsw_training_code_freeze",
+            "status": "complete",
+            "evidence": "GSW_12SCENE_CODE_FREEZE_AUDIT.md reports PASS against gsw-strict-baseline-v2 and gsw-strict-12scene-v1 for training paths.",
+            "missing_or_risk": "",
+            "next_action": "Keep training behavior frozen; only tools/reports may change before execution.",
+        },
+        {
+            "requirement": "unified_full_image_evaluator",
+            "status": "tool_ready_not_full_12scene_executed",
+            "evidence": "tools/baseline_completion/unified_full_image_eval.py is included and py_compile-tested.",
+            "missing_or_risk": "It has not yet evaluated 9 missing corrected GS-W runs because renders do not exist.",
+            "next_action": "Run via strict_12scene_runner.py after training/rendering completes.",
+        },
+        {
+            "requirement": "official_12scene_protocol_audit",
+            "status": "complete_for_existing_results",
+            "evidence": f"OFFICIAL_12SCENE_PROTOCOL_AUDIT.csv classes: A={official_counts['A']}, B={official_counts['B']}, C={official_counts['C']}, D={official_counts['D']}, E={official_counts['E']}.",
+            "missing_or_risk": "B scenes remain provenance-incomplete and cannot enter verified strict main comparison.",
+            "next_action": "Do not rerun official in this round; list B scenes as provisional only.",
+        },
+        {
+            "requirement": "gsw_vs_official_12scene_descriptive_comparison",
+            "status": "partial",
+            "evidence": "GSW_VS_OFFICIAL_VERIFIED_COMPARISON.csv covers 3 verified common scenes.",
+            "missing_or_risk": "No verified 12-scene comparison exists until GS-W pending scenes are run and official B scenes are either verified or kept provisional.",
+            "next_action": "Regenerate after GPT-approved GS-W runs.",
+        },
+        {
+            "requirement": "external_baseline_fairness_matrix",
+            "status": "complete_initial_audit",
+            "evidence": "EXTERNAL_BASELINE_FAIRNESS_MATRIX.csv classifies GS-W legacy, corrected GS-W, Splatfacto-W, Luminance-GS and WildGaussians.",
+            "missing_or_risk": "Luminance-GS and WildGaussians remain unresolved/invalid until bounded diagnostics are executed.",
+            "next_action": "Use current matrix for table revision; do not rank unresolved rows in strict table.",
+        },
+        {
+            "requirement": "splatfacto_w_special_audit",
+            "status": "complete_for_current_historical_results",
+            "evidence": "SPLATFACTO_W_PROTOCOL_AUDIT.md records right-half/transductive protocol evidence.",
+            "missing_or_risk": "No strict full-image Splatfacto-W rerun was performed, by instruction.",
+            "next_action": "Move current Splatfacto-W results to secondary transductive table.",
+        },
+        {
+            "requirement": "luminance_gs_bounded_diagnostics",
+            "status": "not_executed",
+            "evidence": "LUMINANCE_GS_FAILURE_DIAGNOSIS.csv summarizes historical failures only.",
+            "missing_or_risk": "No new reader/train/render smoke has been executed for a success scene or failed scenes in this package.",
+            "next_action": "After GPT approval, run bounded diagnostics only; do not launch 30k Luminance-GS reruns.",
+        },
+        {
+            "requirement": "wildgaussians_bounded_diagnostics",
+            "status": "partial_static_image_stats_only",
+            "evidence": "WILDGAUSSIANS_DIAGNOSTIC_RESULTS.csv contains sampled render statistics from historical audit images.",
+            "missing_or_risk": "No official sample validation, camera/normalization smoke or two-scene adapter diagnostic has been executed.",
+            "next_action": "After GPT approval, run two bounded wrapper diagnostics before considering any full rerun.",
+        },
+        {
+            "requirement": "forbidden_changes",
+            "status": "complete",
+            "evidence": "Only tools/baseline_completion and reports/baseline_completion were added; training methods, networks, losses and densification were not modified in this round.",
+            "missing_or_risk": "",
+            "next_action": "Continue to keep baseline method source frozen.",
+        },
+    ]
+    write_csv(REPORT / "COMPLETION_GAP_AUDIT.csv", gap_rows)
+    md = [
+        "# COMPLETION_GAP_AUDIT",
+        "",
+        "This audit prevents the current preflight package from being mistaken for a completed 12-scene benchmark.",
+        "",
+        f"- Corrected GS-W strict success coverage: `{len(successes)}/12`.",
+        f"- Corrected GS-W strict pending/non-success rows: `{len(pending)}/12`.",
+        f"- Official class counts: A={official_counts['A']}, B={official_counts['B']}, C={official_counts['C']}, D={official_counts['D']}, E={official_counts['E']}.",
+        "- Stop condition from GPT is not fully satisfied because the remaining GS-W long run and bounded Luminance/Wild diagnostics are not executed yet.",
+        "- The package is still useful as a review gate: it freezes protocol, identifies invalid baselines and provides a guarded runner/evaluator for the next approved step.",
+        "",
+        "| requirement | status | next action |",
+        "|---|---|---|",
+    ]
+    for row in gap_rows:
+        md.append(f"| {row['requirement']} | {row['status']} | {row['next_action']} |")
+    write_text(REPORT / "COMPLETION_GAP_AUDIT.md", "\n".join(md) + "\n")
+
+
+def gsw_execution_plan() -> None:
+    registry = read_csv(REPORT / "GSW_12SCENE_RUN_REGISTRY.csv")
+    pending = [row for row in registry if row.get("needs_new_training") == "True"]
+    plan: list[dict[str, object]] = []
+    for row in pending:
+        scene = row["scene_name"]
+        model_path = PENDING_GSW_RUN_ROOT / scene
+        method_dir = model_path / "test" / "ours_30000_strict_intrinsic"
+        train_cmd = conda_python(
+            REPO / "train.py",
+            [
+                "--source_path",
+                str(DATA_ROOT / scene),
+                "--scene_name",
+                scene,
+                "--model_path",
+                str(model_path),
+                "--resolution",
+                "1",
+                "--iterations",
+                "30000",
+                "--split_mode",
+                "frozen_manifest",
+                "--split_file",
+                row["manifest_path"],
+                "--test_appearance_mode",
+                "strict_intrinsic",
+                "--test_iterations",
+                "1000000",
+                "--save_iterations",
+                "30000",
+                "--disable_render_after_train",
+                "--disable_metrics_after_train",
+                "--disable_train_temp_images",
+                "--quiet",
+            ],
+        )
+        render_cmd = conda_python(
+            REPO / "render.py",
+            [
+                "--source_path",
+                str(DATA_ROOT / scene),
+                "--scene_name",
+                scene,
+                "--model_path",
+                str(model_path),
+                "--resolution",
+                "1",
+                "--iteration",
+                "30000",
+                "--split_mode",
+                "frozen_manifest",
+                "--split_file",
+                row["manifest_path"],
+                "--test_appearance_mode",
+                "strict_intrinsic",
+                "--render_output_tag",
+                "strict_intrinsic",
+                "--skip_train",
+                "--quiet",
+            ],
+        )
+        eval_cmd = conda_python(
+            REPO / "tools" / "baseline_completion" / "unified_full_image_eval.py",
+            [
+                "--label",
+                f"{row['designated_run_id']}=gsw_strict_intrinsic={scene}={method_dir}={row['manifest_path']}",
+                "--results-csv",
+                str(REPORT / "runner_eval_results" / f"{scene}_summary.csv"),
+                "--per-view-csv",
+                str(REPORT / "runner_eval_results" / f"{scene}_per_view.csv"),
+            ],
+        )
+        plan.extend(
+            [
+                {"scene": scene, "stage": "train_30k", "command": ps_join(train_cmd), "approval_required": GSW_APPROVAL_TOKEN},
+                {"scene": scene, "stage": "render_strict_intrinsic", "command": ps_join(render_cmd), "approval_required": GSW_APPROVAL_TOKEN},
+                {"scene": scene, "stage": "unified_full_image_eval", "command": ps_join(eval_cmd), "approval_required": GSW_APPROVAL_TOKEN},
+            ]
+        )
+    write_csv(REPORT / "GSW_12SCENE_EXECUTION_PLAN.csv", plan)
+    md = [
+        "# GSW_12SCENE_EXECUTION_PLAN",
+        "",
+        "Dry-run command plan only. These commands have not been executed by this audit package.",
+        "",
+        f"- Pending corrected GS-W strict scenes: `{len(pending)}`.",
+        f"- Execution root: `{PENDING_GSW_RUN_ROOT}`.",
+        f"- Guarded runner: `tools/baseline_completion/strict_12scene_runner.py`.",
+        f"- Approval token required for execution: `{GSW_APPROVAL_TOKEN}=1`.",
+        "- Training uses resolution=1, iterations=30000, seed from `safe_state`, frozen manifest split, strict_intrinsic test appearance, no train-time test evaluation and no metrics_half.",
+        "",
+    ]
+    for row in pending:
+        md.extend([f"## {row['scene_name']}", ""])
+        for item in [p for p in plan if p["scene"] == row["scene_name"]]:
+            md.extend([f"### {item['stage']}", "", "```powershell", str(item["command"]), "```", ""])
+    write_text(REPORT / "GSW_12SCENE_EXECUTION_PLAN.md", "\n".join(md))
+
+
+def external_diagnostic_plan() -> None:
+    luminance_failures = read_csv(REPORT / "LUMINANCE_GS_FAILURE_DIAGNOSIS.csv")
+    luminance_metrics = [r for r in read_csv(EXTERNAL_SUMMARY / "metrics_all_methods.csv") if r.get("method") == "luminance_gs"]
+    luminance_success = next((r.get("scene", "") for r in luminance_metrics if safe_float(r.get("psnr")) is not None), "")
+    luminance_failed_scenes = sorted({r.get("scene", "") for r in luminance_failures if r.get("scene")})
+    rows: list[dict[str, object]] = []
+    if luminance_success:
+        rows.append(
+            {
+                "method": "Luminance-GS",
+                "scene": luminance_success,
+                "diagnostic": "success_scene_reader_render_smoke",
+                "allowed_scope": "reader/config/render smoke using existing wrapper; no 30k rerun",
+                "forbidden_scope": "method source rewrite; test-metric hyperparameter tuning",
+                "status": "not_executed",
+                "evidence_needed": "log with exit code, command, config, render/gt count and color range",
+            }
+        )
+    for scene in luminance_failed_scenes:
+        rows.append(
+            {
+                "method": "Luminance-GS",
+                "scene": scene,
+                "diagnostic": "failed_scene_config_plus_300_1000_iter_smoke",
+                "allowed_scope": "adapter/config audit and 300-1000 iteration smoke only if the process starts correctly",
+                "forbidden_scope": "full 30k; method source rewrite; selecting by test metric",
+                "status": "not_executed",
+                "evidence_needed": "stdout/stderr, exit code, OOM/NaN status, checkpoint/render availability and curve/test-view protocol notes",
+            }
+        )
+    rows.extend(
+        [
+            {
+                "method": "WildGaussians",
+                "scene": "official_or_minimal_public_sample",
+                "diagnostic": "upstream_sample_validation",
+                "allowed_scope": "verify upstream code can produce non-dark images in recommended environment",
+                "forbidden_scope": "changing method code and calling it the original baseline",
+                "status": "not_executed",
+                "evidence_needed": "commit, command, environment, output image min/max/mean/std/black ratio",
+            },
+            {
+                "method": "WildGaussians",
+                "scene": "web_Baalshamin_images",
+                "diagnostic": "simple_scene_adapter_smoke",
+                "allowed_scope": "reader/checkpoint/render smoke or 300-1000 iteration wrapper diagnostic",
+                "forbidden_scope": "full 12-scene rerun before adapter issue is resolved",
+                "status": "not_executed",
+                "evidence_needed": "camera/intrinsics/normalization/background/range audit plus image statistics",
+            },
+            {
+                "method": "WildGaussians",
+                "scene": "web_doss_images",
+                "diagnostic": "complex_scene_adapter_smoke",
+                "allowed_scope": "reader/checkpoint/render smoke or 300-1000 iteration wrapper diagnostic",
+                "forbidden_scope": "full 12-scene rerun before adapter issue is resolved",
+                "status": "not_executed",
+                "evidence_needed": "camera/intrinsics/normalization/background/range audit plus image statistics",
+            },
+        ]
+    )
+    write_csv(REPORT / "EXTERNAL_BASELINE_DIAGNOSTIC_PLAN.csv", rows)
+    md = [
+        "# EXTERNAL_BASELINE_DIAGNOSTIC_PLAN",
+        "",
+        "This plan defines bounded diagnostics only. It is not evidence that those diagnostics have been executed.",
+        "",
+        "- Luminance-GS: diagnose current failure scenes with reader/config and 300-1000 iteration smoke only; no full 30k rerun.",
+        "- WildGaussians: first validate upstream output and two adapter scenes; no full 12-scene rerun until dark-render cause is isolated.",
+        "- Any adapter fix must stay in wrapper/adapter code, not in method core source.",
+        "",
+        "| method | scene | diagnostic | status |",
+        "|---|---|---|---|",
+    ]
+    for row in rows:
+        md.append(f"| {row['method']} | {row['scene']} | {row['diagnostic']} | {row['status']} |")
+    write_text(REPORT / "EXTERNAL_BASELINE_DIAGNOSTIC_PLAN.md", "\n".join(md) + "\n")
+
+
 def generate() -> None:
     ensure_dirs()
     code_freeze_audit()
@@ -1035,6 +1334,9 @@ def generate() -> None:
     gsw_vs_official()
     external_fairness()
     summary_report()
+    completion_gap_audit()
+    gsw_execution_plan()
+    external_diagnostic_plan()
     repo_status_files()
 
 
