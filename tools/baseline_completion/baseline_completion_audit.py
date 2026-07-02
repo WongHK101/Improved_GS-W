@@ -666,11 +666,11 @@ def external_fairness() -> None:
             "local_code_modified": repo_info(repos["Luminance-GS"])["status"] or "unknown",
             "split": "adapter-generated LLFF-like split",
             "full_image_or_half_image": "full-image intended",
-            "test_rgb_into_appearance": "unresolved; curve/eval protocol requires deeper method-specific audit",
+            "test_rgb_into_appearance": "unresolved; curve/eval protocol is not strict-audited and current import smoke fails before reader construction",
             "test_time_optimization": "unresolved",
-            "strict_main_competitor": "False until failures/protocol are resolved",
-            "protocol_class": "F",
-            "evidence": "3dgs_runs/external_baselines_20260620/summary/failures.csv; Luminance-GS README targets LOM/MipNeRF360-varying rather than COLMAP LLFF tourism scenes.",
+            "strict_main_competitor": "False; current local env/adapter state is not reproducible",
+            "protocol_class": "E",
+            "evidence": "reports/baseline_completion/EXTERNAL_BASELINE_BOUNDED_DIAGNOSTICS.md; logs/external_bounded_diagnostics/luminance_import_smoke.log shows pycolmap SceneManager import failure; 3dgs_runs/external_baselines_20260620/summary/failures.csv.",
         },
         {
             "method": "WildGaussians",
@@ -684,7 +684,7 @@ def external_fairness() -> None:
             "test_time_optimization": "unresolved",
             "strict_main_competitor": "False",
             "protocol_class": "E",
-            "evidence": "metrics_all_methods.csv shows PSNR mostly 4.94-8.41 except one small-scene row; diagnostic image statistics in WILDGAUSSIANS_DIAGNOSTIC_RESULTS.csv.",
+            "evidence": "metrics_all_methods.csv shows PSNR mostly 4.94-8.41 except one small-scene row; WILDGAUSSIANS_DIAGNOSTIC_RESULTS.csv; EXTERNAL_BASELINE_BOUNDED_DIAGNOSTICS.md; wild reader smoke logs show COLMAP adapter reads but numeric renders remain invalid.",
         },
     ]
     write_csv(REPORT / "EXTERNAL_BASELINE_FAIRNESS_MATRIX.csv", matrix)
@@ -789,23 +789,25 @@ def luminance_audit() -> None:
         "",
         f"- Historical metric rows found: `{len(metrics)}`.",
         f"- Missing final metric scenes: `{', '.join(missing) if missing else '(none)'}`.",
-        "- Protocol classification: `F. unresolved`.",
-        "- Current rows should not enter strict main table until curve/test-view protocol and failed-scene adapters are audited.",
+        "- Protocol classification: `E. adapter/configuration invalid in current local state`.",
+        "- Current rows should not enter strict main table: the current 3dgs environment fails to import Luminance-GS because `pycolmap.SceneManager` is unavailable.",
         "",
         "Evidence:",
         "",
         "- `external_baselines/Luminance-GS/Luminance-GS/README.md` describes LOM low-light/overexposure and MipNeRF360-varying, not this COLMAP tourism protocol.",
         "- `3dgs_runs/external_baselines_20260620/summary/failures.csv` records multiple failed attempts.",
         "- `metrics_all_methods.csv` contains Luminance-GS rows for only a subset/low-confidence set of scenes.",
+        "- `reports/baseline_completion/logs/external_bounded_diagnostics/luminance_import_smoke.log` records `ImportError: cannot import name 'SceneManager' from 'pycolmap'`; `luminance_pycolmap_probe.log` records pycolmap `4.0.4` and `has_SceneManager=false`.",
+        "- `LUMINANCE_GS_BOUNDED_DIAGNOSTIC_RUNS.csv` and `LUMINANCE_GS_BOUNDED_DIAGNOSTIC_ADAPTER.csv` contain per-scene log/adapter diagnostics.",
         "",
     ]
     write_text(REPORT / "LUMINANCE_GS_PROTOCOL_AUDIT.md", "\n".join(md))
     rec = [
         "# LUMINANCE_GS_RERUN_RECOMMENDATION",
         "",
-        "Recommendation: do not launch full 30k reruns yet.",
+        "Recommendation: do not launch full 30k reruns.",
         "",
-        "Bounded next step if GPT approves: run one success-scene reader/train/render smoke and one 300-1000 iteration smoke for each unresolved failed scene. If the failure is clearly adapter/config level, fix only the wrapper and rerun smoke before approving full 30k.",
+        "Bounded next step if GPT approves Luminance-GS repair: fix the wrapper/environment mismatch around `pycolmap.SceneManager` first, then rerun import + reader smoke. Do not run 30k until the current import failure is resolved.",
         "",
         f"Priority scenes: `{', '.join(sorted(set(missing + partial)))}`.",
     ]
@@ -861,7 +863,7 @@ def wildgaussians_audit() -> None:
         "",
         f"- Historical metric rows found: `{len(metrics)}`.",
         f"- PSNR range in historical summary: `{min(low_psnr):.4f}` to `{max(low_psnr):.4f}`." if low_psnr else "- No PSNR values found.",
-        "- Protocol classification: `E. adapter/configuration invalid` pending repair.",
+        "- Protocol classification: `E. adapter/configuration invalid` pending render/checkpoint/appearance repair.",
         "- Current WildGaussians values should be removed from strict/provisional numeric comparisons.",
         "",
         "Evidence:",
@@ -870,15 +872,18 @@ def wildgaussians_audit() -> None:
         "- `wildgaussians/utils.py:130-146` performs color-space/background conversion; `utils.py:154-169` saves PNG output.",
         "- `wildgaussians/evaluation.py:332` explicitly blends with black background for metrics.",
         f"- Numeric image statistics are in `WILDGAUSSIANS_DIAGNOSTIC_RESULTS.csv` (`{len(stats)}` sampled prediction images).",
+        "- `logs/external_bounded_diagnostics/wild_import_smoke.log` passes; `wild_reader_smoke.log` loads both `web_Baalshamin_images` and `web_doss_images` train/test adapters. Thus the remaining failure is downstream of basic COLMAP reader construction.",
         "",
     ]
     write_text(REPORT / "WILDGAUSSIANS_PROTOCOL_AUDIT.md", "\n".join(md))
     diag = [
         "# WILDGAUSSIANS_BLACK_RENDER_DIAGNOSIS",
         "",
-        "Current evidence is strongest for integration/adapter invalidity rather than a fair method failure: historical renders/metrics are dark enough that the numeric table is invalid. The next diagnostic should verify camera convention, scene normalization, background/color conversion and checkpoint loading on one simple and one complex scene only.",
+        "Current evidence is strongest for integration/adapter invalidity rather than a fair method failure: historical metrics are dark/low enough that the numeric table is invalid. Basic import and COLMAP reader smoke pass on one simple and one complex scene, so the next diagnostic should focus on render/checkpoint/appearance/background handling.",
         "",
         f"- Diagnostic image files scanned: `{len(stats)}`.",
+        "- Import smoke: passed.",
+        "- Reader smoke: passed for `web_Baalshamin_images` train/test and `web_doss_images` train/test.",
         "- No full 12-scene WildGaussians rerun was started.",
     ]
     write_text(REPORT / "WILDGAUSSIANS_BLACK_RENDER_DIAGNOSIS.md", "\n".join(diag) + "\n")
@@ -1033,10 +1038,10 @@ def summary_report() -> None:
         f"- Existing official 12-scene classes: A={counts['A']}, B={counts['B']}, C={counts['C']}, D={counts['D']}, E={counts['E']}.",
         f"- Verified official common scenes currently compared: `{len(verified)}`.",
         "- Splatfacto-W: not strict fair; transductive/right-half protocol.",
-        "- Luminance-GS: unresolved; bounded diagnostics recommended before full rerun.",
-        "- WildGaussians: current numeric rows invalid/remove; likely adapter/config integration issue, not a fair strict result.",
+        "- Luminance-GS: current local env/adapter state invalid; bounded import/log/adapter diagnostics found pycolmap `SceneManager` API mismatch.",
+        "- WildGaussians: current numeric rows invalid/remove; bounded reader diagnostics pass, but render/checkpoint/appearance integration remains invalid/dark.",
         "",
-        "Next GPT decision needed: approve or reject the remaining single-run GS-W strict 30k schedule for the 9 pending scenes.",
+        "Next GPT decision needed: approve or reject the remaining single-run GS-W strict 30k schedule for the 9 pending scenes; separately decide whether to repair Luminance-GS/WildGaussians wrappers.",
         "",
     ]
     write_text(REPORT / "BASELINE_COMPLETION_AUDIT_SUMMARY.md", "\n".join(md))
@@ -1107,17 +1112,17 @@ def completion_gap_audit() -> None:
         },
         {
             "requirement": "luminance_gs_bounded_diagnostics",
-            "status": "not_executed",
-            "evidence": "LUMINANCE_GS_FAILURE_DIAGNOSIS.csv summarizes historical failures only.",
-            "missing_or_risk": "No new reader/train/render smoke has been executed for a success scene or failed scenes in this package.",
-            "next_action": "After GPT approval, run bounded diagnostics only; do not launch 30k Luminance-GS reruns.",
+            "status": "completed_bounded_import_log_adapter_diagnostic",
+            "evidence": "EXTERNAL_BASELINE_BOUNDED_DIAGNOSTICS.md plus luminance_import_smoke.log show current environment fails at pycolmap SceneManager import; LUMINANCE_GS_BOUNDED_DIAGNOSTIC_RUNS.csv summarizes historical failures and render/checkpoint presence.",
+            "missing_or_risk": "A 300-1000 iteration smoke is blocked by import/API incompatibility; current Luminance-GS rows are not strict-main reproducible.",
+            "next_action": "If GPT wants Luminance-GS retained, first fix the wrapper/environment pycolmap API mismatch, then rerun bounded smoke only.",
         },
         {
             "requirement": "wildgaussians_bounded_diagnostics",
-            "status": "partial_static_image_stats_only",
-            "evidence": "WILDGAUSSIANS_DIAGNOSTIC_RESULTS.csv contains sampled render statistics from historical audit images.",
-            "missing_or_risk": "No official sample validation, camera/normalization smoke or two-scene adapter diagnostic has been executed.",
-            "next_action": "After GPT approval, run two bounded wrapper diagnostics before considering any full rerun.",
+            "status": "completed_import_reader_static_render_diagnostic",
+            "evidence": "wild_import_smoke.log passes; wild_reader_smoke.log reads simple and complex adapters; WILDGAUSSIANS_BOUNDED_DIAGNOSTIC_RUNS.csv and WILDGAUSSIANS_DIAGNOSTIC_RESULTS.csv show dark/low-PSNR outputs.",
+            "missing_or_risk": "Reader is not the root failure; remaining risk is render/checkpoint/appearance/background integration. No full 12-scene rerun was launched.",
+            "next_action": "Diagnose WildGaussians wrapper render/checkpoint/appearance handling on two scenes before any full rerun.",
         },
         {
             "requirement": "forbidden_changes",
@@ -1261,8 +1266,8 @@ def external_diagnostic_plan() -> None:
                 "diagnostic": "success_scene_reader_render_smoke",
                 "allowed_scope": "reader/config/render smoke using existing wrapper; no 30k rerun",
                 "forbidden_scope": "method source rewrite; test-metric hyperparameter tuning",
-                "status": "not_executed",
-                "evidence_needed": "log with exit code, command, config, render/gt count and color range",
+                "status": "blocked_by_import_api_mismatch",
+                "evidence_needed": "logs/external_bounded_diagnostics/luminance_import_smoke.log; pycolmap SceneManager unavailable",
             }
         )
     for scene in luminance_failed_scenes:
@@ -1273,8 +1278,8 @@ def external_diagnostic_plan() -> None:
                 "diagnostic": "failed_scene_config_plus_300_1000_iter_smoke",
                 "allowed_scope": "adapter/config audit and 300-1000 iteration smoke only if the process starts correctly",
                 "forbidden_scope": "full 30k; method source rewrite; selecting by test metric",
-                "status": "not_executed",
-                "evidence_needed": "stdout/stderr, exit code, OOM/NaN status, checkpoint/render availability and curve/test-view protocol notes",
+                "status": "blocked_by_import_api_mismatch",
+                "evidence_needed": "LUMINANCE_GS_BOUNDED_DIAGNOSTIC_RUNS.csv plus luminance_import_smoke.log; no optimization launched",
             }
         )
     rows.extend(
@@ -1285,8 +1290,8 @@ def external_diagnostic_plan() -> None:
                 "diagnostic": "upstream_sample_validation",
                 "allowed_scope": "verify upstream code can produce non-dark images in recommended environment",
                 "forbidden_scope": "changing method code and calling it the original baseline",
-                "status": "not_executed",
-                "evidence_needed": "commit, command, environment, output image min/max/mean/std/black ratio",
+                "status": "import_smoke_passed_sample_not_run",
+                "evidence_needed": "wild_import_smoke.log passes; no public sample training launched in this audit",
             },
             {
                 "method": "WildGaussians",
@@ -1294,8 +1299,8 @@ def external_diagnostic_plan() -> None:
                 "diagnostic": "simple_scene_adapter_smoke",
                 "allowed_scope": "reader/checkpoint/render smoke or 300-1000 iteration wrapper diagnostic",
                 "forbidden_scope": "full 12-scene rerun before adapter issue is resolved",
-                "status": "not_executed",
-                "evidence_needed": "camera/intrinsics/normalization/background/range audit plus image statistics",
+                "status": "reader_smoke_passed_render_invalid",
+                "evidence_needed": "wild_reader_smoke.log plus WILDGAUSSIANS_BOUNDED_DIAGNOSTIC_RUNS.csv",
             },
             {
                 "method": "WildGaussians",
@@ -1303,8 +1308,8 @@ def external_diagnostic_plan() -> None:
                 "diagnostic": "complex_scene_adapter_smoke",
                 "allowed_scope": "reader/checkpoint/render smoke or 300-1000 iteration wrapper diagnostic",
                 "forbidden_scope": "full 12-scene rerun before adapter issue is resolved",
-                "status": "not_executed",
-                "evidence_needed": "camera/intrinsics/normalization/background/range audit plus image statistics",
+                "status": "reader_smoke_passed_render_invalid",
+                "evidence_needed": "wild_reader_smoke.log plus WILDGAUSSIANS_BOUNDED_DIAGNOSTIC_RUNS.csv",
             },
         ]
     )
@@ -1312,10 +1317,10 @@ def external_diagnostic_plan() -> None:
     md = [
         "# EXTERNAL_BASELINE_DIAGNOSTIC_PLAN",
         "",
-        "This plan defines bounded diagnostics only. It is not evidence that those diagnostics have been executed.",
+        "This table records bounded diagnostics and remaining follow-up. No full 30k external baseline reruns were launched.",
         "",
-        "- Luminance-GS: diagnose current failure scenes with reader/config and 300-1000 iteration smoke only; no full 30k rerun.",
-        "- WildGaussians: first validate upstream output and two adapter scenes; no full 12-scene rerun until dark-render cause is isolated.",
+        "- Luminance-GS: import/API mismatch blocks reader/train smoke in the current environment; no full 30k rerun.",
+        "- WildGaussians: import and two-scene reader smoke pass; no full 12-scene rerun until dark-render cause is isolated.",
         "- Any adapter fix must stay in wrapper/adapter code, not in method core source.",
         "",
         "| method | scene | diagnostic | status |",

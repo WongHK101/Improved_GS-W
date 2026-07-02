@@ -10,7 +10,7 @@ This package is an audit/preflight deliverable. It does not start the remaining 
 - Existing official 12-scene classes: A=3, B=9, C=0, D=0, E=0.
 - Verified official common scenes currently compared: `3`.
 - Splatfacto-W: not strict fair; transductive/right-half protocol.
-- Luminance-GS: unresolved; bounded diagnostics recommended before full rerun.
-- WildGaussians: current numeric rows invalid/remove; likely adapter/config integration issue, not a fair strict result.
+- Luminance-GS: current local env/adapter state invalid; bounded import/log/adapter diagnostics found pycolmap `SceneManager` API mismatch.
+- WildGaussians: current numeric rows invalid/remove; bounded reader diagnostics pass, but render/checkpoint/appearance integration remains invalid/dark.
 
-Next GPT decision needed: approve or reject the remaining single-run GS-W strict 30k schedule for the 9 pending scenes.
+Next GPT decision needed: approve or reject the remaining single-run GS-W strict 30k schedule for the 9 pending scenes; separately decide whether to repair Luminance-GS/WildGaussians wrappers.

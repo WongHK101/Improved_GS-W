@@ -18,6 +18,6 @@ This audit prevents the current preflight package from being mistaken for a comp
 | gsw_vs_official_12scene_descriptive_comparison | partial | Regenerate after GPT-approved GS-W runs. |
 | external_baseline_fairness_matrix | complete_initial_audit | Use current matrix for table revision; do not rank unresolved rows in strict table. |
 | splatfacto_w_special_audit | complete_for_current_historical_results | Move current Splatfacto-W results to secondary transductive table. |
-| luminance_gs_bounded_diagnostics | not_executed | After GPT approval, run bounded diagnostics only; do not launch 30k Luminance-GS reruns. |
-| wildgaussians_bounded_diagnostics | partial_static_image_stats_only | After GPT approval, run two bounded wrapper diagnostics before considering any full rerun. |
+| luminance_gs_bounded_diagnostics | completed_bounded_import_log_adapter_diagnostic | If GPT wants Luminance-GS retained, first fix the wrapper/environment pycolmap API mismatch, then rerun bounded smoke only. |
+| wildgaussians_bounded_diagnostics | completed_import_reader_static_render_diagnostic | Diagnose WildGaussians wrapper render/checkpoint/appearance handling on two scenes before any full rerun. |
 | forbidden_changes | complete | Continue to keep baseline method source frozen. |

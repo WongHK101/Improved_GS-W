@@ -1,7 +1,7 @@
 # LUMINANCE_GS_RERUN_RECOMMENDATION
 
-Recommendation: do not launch full 30k reruns yet.
+Recommendation: do not launch full 30k reruns.
 
-Bounded next step if GPT approves: run one success-scene reader/train/render smoke and one 300-1000 iteration smoke for each unresolved failed scene. If the failure is clearly adapter/config level, fix only the wrapper and rerun smoke before approving full 30k.
+Bounded next step if GPT approves Luminance-GS repair: fix the wrapper/environment mismatch around `pycolmap.SceneManager` first, then rerun import + reader smoke. Do not run 30k until the current import failure is resolved.
 
 Priority scenes: `self_3000t_Press, self_Trackmobile_4650TM_Mobile_Railcar_Mover, web_metopa_images`.

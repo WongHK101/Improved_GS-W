@@ -1,0 +1,13 @@
+method,scene,adapter_path,adapter_exists,train_list_exists,test_list_exists,images_exists,sparse_exists,sparse_0_exists,train_list_count,train_list_first,test_list_count,test_list_first
+WildGaussians,self_3000t_Press,G:\WL3DGS\3dgs_runs\external_baselines_20260620\adapters\wildgaussians\self_3000t_Press,True,True,True,True,True,True,30,IMG20260128162529..jpg,5,IMG20260128162523..jpg
+WildGaussians,self_CLG899III_Wheel_Loader,G:\WL3DGS\3dgs_runs\external_baselines_20260620\adapters\wildgaussians\self_CLG899III_Wheel_Loader,True,True,True,True,True,True,150,v01_00002.jpg,22,v01_00001.jpg
+WildGaussians,self_Steam_Locomotive,G:\WL3DGS\3dgs_runs\external_baselines_20260620\adapters\wildgaussians\self_Steam_Locomotive,True,True,True,True,True,True,70,00002.jpg,10,00001.jpg
+WildGaussians,self_Trackmobile_4650TM_Mobile_Railcar_Mover,G:\WL3DGS\3dgs_runs\external_baselines_20260620\adapters\wildgaussians\self_Trackmobile_4650TM_Mobile_Railcar_Mover,True,True,True,True,True,True,13,0002.jpg,2,0001.jpg
+WildGaussians,self_double-action_press,G:\WL3DGS\3dgs_runs\external_baselines_20260620\adapters\wildgaussians\self_double-action_press,True,True,True,True,True,True,157,00002.jpg,23,00001.jpg
+WildGaussians,web_Baalshamin_images,G:\WL3DGS\3dgs_runs\external_baselines_20260620\adapters\wildgaussians\web_Baalshamin_images,True,True,True,True,True,True,39,182z.jpg,6,1147302_palmyre-lei-detruit-le-temple-de-baalshamin-classe-au-patrimoine-de-lhumanite-web-tete-021277294556.jpg
+WildGaussians,web_Terrestrial,G:\WL3DGS\3dgs_runs\external_baselines_20260620\adapters\wildgaussians\web_Terrestrial,True,True,True,True,True,True,166,IMG_6285.TIF,24,IMG_6283.TIF
+WildGaussians,web_Trento_Duomo_images,G:\WL3DGS\3dgs_runs\external_baselines_20260620\adapters\wildgaussians\web_Trento_Duomo_images,True,True,True,True,True,True,494,20160323_084551.jpg,71,20160323_084544.jpg
+WildGaussians,web_cyprus_images,G:\WL3DGS\3dgs_runs\external_baselines_20260620\adapters\wildgaussians\web_cyprus_images,True,True,True,True,True,True,155,0001.jpg,23,0000.jpg
+WildGaussians,web_doss_images,G:\WL3DGS\3dgs_runs\external_baselines_20260620\adapters\wildgaussians\web_doss_images,True,True,True,True,True,True,664,0002.jpg,95,0001.jpg
+WildGaussians,web_metopa_images,G:\WL3DGS\3dgs_runs\external_baselines_20260620\adapters\wildgaussians\web_metopa_images,True,True,True,True,True,True,91,DSCN9635.JPG,14,DSCN9633.JPG
+WildGaussians,web_statue_images,G:\WL3DGS\3dgs_runs\external_baselines_20260620\adapters\wildgaussians\web_statue_images,True,True,True,True,True,True,87,01_Camera2.jpg,13,01_Camera1.jpg

@@ -1,0 +1,13 @@
+method,scene,adapter_path,adapter_exists,transforms_train_exists,transforms_test_exists,colmap_sparse_exists,low_dir_exists,high_dir_exists,image_dir_exists
+Luminance-GS,self_3000t_Press,G:\WL3DGS\3dgs_runs\external_baselines_20260620\adapters\luminance_gs\self_3000t_Press,True,False,False,False,False,False,True
+Luminance-GS,self_CLG899III_Wheel_Loader,G:\WL3DGS\3dgs_runs\external_baselines_20260620\adapters\luminance_gs\self_CLG899III_Wheel_Loader,True,False,False,False,False,False,True
+Luminance-GS,self_Steam_Locomotive,G:\WL3DGS\3dgs_runs\external_baselines_20260620\adapters\luminance_gs\self_Steam_Locomotive,True,False,False,False,False,False,True
+Luminance-GS,self_Trackmobile_4650TM_Mobile_Railcar_Mover,G:\WL3DGS\3dgs_runs\external_baselines_20260620\adapters\luminance_gs\self_Trackmobile_4650TM_Mobile_Railcar_Mover,True,False,False,False,False,False,True
+Luminance-GS,self_double-action_press,G:\WL3DGS\3dgs_runs\external_baselines_20260620\adapters\luminance_gs\self_double-action_press,True,False,False,False,False,False,True
+Luminance-GS,web_Baalshamin_images,G:\WL3DGS\3dgs_runs\external_baselines_20260620\adapters\luminance_gs\web_Baalshamin_images,True,False,False,False,False,False,True
+Luminance-GS,web_Terrestrial,G:\WL3DGS\3dgs_runs\external_baselines_20260620\adapters\luminance_gs\web_Terrestrial,True,False,False,False,False,False,True
+Luminance-GS,web_Trento_Duomo_images,G:\WL3DGS\3dgs_runs\external_baselines_20260620\adapters\luminance_gs\web_Trento_Duomo_images,True,False,False,False,False,False,True
+Luminance-GS,web_cyprus_images,G:\WL3DGS\3dgs_runs\external_baselines_20260620\adapters\luminance_gs\web_cyprus_images,True,False,False,False,False,False,True
+Luminance-GS,web_doss_images,G:\WL3DGS\3dgs_runs\external_baselines_20260620\adapters\luminance_gs\web_doss_images,True,False,False,False,False,False,True
+Luminance-GS,web_metopa_images,G:\WL3DGS\3dgs_runs\external_baselines_20260620\adapters\luminance_gs\web_metopa_images,True,False,False,False,False,False,True
+Luminance-GS,web_statue_images,G:\WL3DGS\3dgs_runs\external_baselines_20260620\adapters\luminance_gs\web_statue_images,True,False,False,False,False,False,True
