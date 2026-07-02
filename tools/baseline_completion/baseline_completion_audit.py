@@ -122,7 +122,7 @@ def write_text(path: Path, text: str) -> None:
 
 
 def training_freeze_commit() -> str:
-    tagged = run(["git", "rev-parse", TRAINING_FREEZE_TAG], check=False)
+    tagged = run(["git", "rev-parse", f"{TRAINING_FREEZE_TAG}^{{}}"], check=False)
     return tagged or run(["git", "rev-parse", "HEAD"])
 
 
