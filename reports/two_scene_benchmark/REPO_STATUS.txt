@@ -1,0 +1,27 @@
+## git status --short --branch
+## main...origin/main
+?? reports/two_scene_benchmark/EXPERIMENT_PROGRESS.md
+?? reports/two_scene_benchmark/GSW_STRICT_LEAKAGE_BN_AUDIT.csv
+?? reports/two_scene_benchmark/GSW_STRICT_LEAKAGE_BN_AUDIT.md
+?? reports/two_scene_benchmark/POST_DENSIFICATION_PILOT.csv
+?? reports/two_scene_benchmark/POST_DENSIFICATION_PILOT.md
+?? reports/two_scene_benchmark/THIRD_RUN_TRIGGER_DECISION.csv
+?? reports/two_scene_benchmark/THIRD_RUN_TRIGGER_DECISION.md
+?? reports/two_scene_benchmark/THREE_SCENE_BASELINE_COMPARISON.csv
+?? reports/two_scene_benchmark/THREE_SCENE_BASE_SELECTION.md
+?? reports/two_scene_benchmark/TWO_SCENE_SCREENING_PER_VIEW.csv
+?? reports/two_scene_benchmark/TWO_SCENE_SCREENING_RESULTS.csv
+?? reports/two_scene_benchmark/TWO_SCENE_SCREENING_RESULTS.md
+?? reports/two_scene_benchmark/TWO_SCENE_SCREENING_RUN_METADATA.csv
+?? reports/two_scene_benchmark/UPDATED_LONG_RUN_BUDGET.md
+?? reports/two_scene_benchmark/contact_sheets/
+?? reports/two_scene_benchmark/pilot_traces/
+
+## git rev-parse HEAD
+02e77fc34e96b995d4371b191ec0d99f1c45499e
+
+## origin/main...main
+0	0
+
+## submodule status
+
