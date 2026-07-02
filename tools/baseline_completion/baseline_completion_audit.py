@@ -1370,6 +1370,16 @@ def package() -> Path:
     source_logs = source_report / "logs"
     if source_logs.exists():
         shutil.copytree(source_logs, stage_report / "logs", dirs_exist_ok=True, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+    for pattern in [
+        "EXTERNAL_BASELINE_BOUNDED_DIAGNOSTICS.*",
+        "EXTERNAL_BASELINE_CODE_EVIDENCE.csv",
+        "EXTERNAL_BASELINE_SMOKE_RESULTS.csv",
+        "LUMINANCE_GS_BOUNDED_DIAGNOSTIC_*.csv",
+        "WILDGAUSSIANS_BOUNDED_DIAGNOSTIC_*.csv",
+    ]:
+        for source_file in source_report.glob(pattern):
+            if source_file.is_file():
+                shutil.copy2(source_file, stage_report / source_file.name)
     shutil.copytree(REPO / "tools" / "baseline_completion", stage / "tools" / "baseline_completion", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
     patches = stage / "patches"
     patches.mkdir(parents=True, exist_ok=True)
