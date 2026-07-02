@@ -5,8 +5,8 @@ This audit prevents the current preflight package from being mistaken for a comp
 - Corrected GS-W strict success coverage: `3/12`.
 - Corrected GS-W strict pending/non-success rows: `9/12`.
 - Official class counts: A=3, B=9, C=0, D=0, E=0.
-- Stop condition from GPT is not fully satisfied because the remaining GS-W long run and bounded Luminance/Wild diagnostics are not executed yet.
-- The package is still useful as a review gate: it freezes protocol, identifies invalid baselines and provides a guarded runner/evaluator for the next approved step.
+- Stop condition from GPT is not fully satisfied only for corrected GS-W 12-scene coverage: 9 pending strict 30k runs still require GPT approval. Bounded Luminance-GS and WildGaussians diagnostics have been executed and recorded.
+- The package is still useful as a review gate: it freezes protocol, identifies invalid/provisional baselines and provides a guarded runner/evaluator for the next approved step.
 
 | requirement | status | next action |
 |---|---|---|
@@ -17,7 +17,7 @@ This audit prevents the current preflight package from being mistaken for a comp
 | official_12scene_protocol_audit | complete_for_existing_results | Do not rerun official in this round; list B scenes as provisional only. |
 | gsw_vs_official_12scene_descriptive_comparison | partial | Regenerate after GPT-approved GS-W runs. |
 | external_baseline_fairness_matrix | complete_initial_audit | Use current matrix for table revision; do not rank unresolved rows in strict table. |
-| splatfacto_w_special_audit | complete_for_current_historical_results | Move current Splatfacto-W results to secondary transductive table. |
+| splatfacto_w_special_audit | complete_for_current_historical_results | Keep current Splatfacto-W numbers out of the strict main table; ask GPT whether to export per-view renders from checkpoints or schedule a strict rerun/export plan. |
 | luminance_gs_bounded_diagnostics | completed_bounded_import_log_adapter_diagnostic | If GPT wants Luminance-GS retained, first fix the wrapper/environment pycolmap API mismatch, then rerun bounded smoke only. |
 | wildgaussians_bounded_diagnostics | completed_import_reader_static_render_diagnostic | Diagnose WildGaussians wrapper render/checkpoint/appearance handling on two scenes before any full rerun. |
 | forbidden_changes | complete | Continue to keep baseline method source frozen. |

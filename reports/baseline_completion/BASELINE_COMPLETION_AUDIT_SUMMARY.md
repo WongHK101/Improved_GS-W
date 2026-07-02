@@ -9,7 +9,7 @@ This package is an audit/preflight deliverable. It does not start the remaining 
 - GS-W successful-scene mean/median LPIPS: `0.554201` / `0.534607`.
 - Existing official 12-scene classes: A=3, B=9, C=0, D=0, E=0.
 - Verified official common scenes currently compared: `3`.
-- Splatfacto-W: not strict fair; transductive/right-half protocol.
+- Splatfacto-W: not strict-main usable. Current evidence corrects the earlier half-image claim: saved 12-scene configs are full-image (`eval_right_half=false`) with average appearance, but no per-view render/GT artifacts exist for unified re-evaluation and split provenance is not frozen-manifest verified.
 - Luminance-GS: current local env/adapter state invalid; bounded import/log/adapter diagnostics found pycolmap `SceneManager` API mismatch.
 - WildGaussians: current numeric rows invalid/remove; bounded reader diagnostics pass, but render/checkpoint/appearance integration remains invalid/dark.
 

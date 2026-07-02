@@ -607,6 +607,76 @@ def repo_info(path: Path) -> dict[str, str]:
     }
 
 
+def config_scalar(text: str, key: str) -> str:
+    prefix = f"{key}:"
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith(prefix):
+            return stripped[len(prefix) :].strip()
+    return ""
+
+
+def splatfacto_historical_run_audit() -> list[dict[str, Any]]:
+    root = EXTERNAL_RUN / "splatfacto_w_r1_iter30000"
+    logs = EXTERNAL_RUN / "logs"
+    rows: list[dict[str, Any]] = []
+    if not root.exists():
+        write_csv(REPORT / "SPLATFACTO_W_HISTORICAL_RUN_AUDIT.csv", rows)
+        return rows
+    for scene_dir in sorted([p for p in root.iterdir() if p.is_dir()]):
+        cfgs = list(scene_dir.rglob("config.yml"))
+        cfg_text = cfgs[0].read_text(encoding="utf-8", errors="replace") if cfgs else ""
+        eval_json = scene_dir / "eval.json"
+        eval_data: dict[str, Any] = {}
+        if eval_json.exists():
+            try:
+                eval_data = json.loads(eval_json.read_text(encoding="utf-8", errors="replace"))
+            except Exception as exc:
+                eval_data = {"json_error": str(exc)}
+        result = eval_data.get("results", {}) if isinstance(eval_data.get("results"), dict) else eval_data
+        image_files = [
+            p
+            for ext in ("*.png", "*.jpg", "*.jpeg")
+            for p in scene_dir.rglob(ext)
+            if p.is_file()
+        ]
+        render_like = [
+            p
+            for p in image_files
+            if any(token in str(p).lower() for token in ("render", "pred", "rgb", "gt", "image"))
+        ]
+        train_cmd = logs / f"splatfacto_w_r1_{scene_dir.name}_train.cmd"
+        metrics_cmd = logs / f"splatfacto_w_r1_{scene_dir.name}_metrics.cmd"
+        rows.append(
+            {
+                "scene": scene_dir.name,
+                "config_count": len(cfgs),
+                "config_path": str(cfgs[0]) if cfgs else "",
+                "max_num_iterations": config_scalar(cfg_text, "max_num_iterations"),
+                "method_name": config_scalar(cfg_text, "method_name"),
+                "datamanager": "FullImageDatamanager" if "FullImageDatamanagerConfig" in cfg_text else "unknown",
+                "eval_right_half": config_scalar(cfg_text, "eval_right_half"),
+                "use_avg_appearance": config_scalar(cfg_text, "use_avg_appearance"),
+                "appearance_embed_dim": config_scalar(cfg_text, "appearance_embed_dim"),
+                "appearance_features_dim": config_scalar(cfg_text, "appearance_features_dim"),
+                "train_split_fraction": config_scalar(cfg_text, "train_split_fraction"),
+                "eval_mode": config_scalar(cfg_text, "eval_mode"),
+                "eval_interval": config_scalar(cfg_text, "eval_interval"),
+                "downscale_factor": config_scalar(cfg_text, "downscale_factor"),
+                "eval_json_exists": str(eval_json.exists()),
+                "psnr": result.get("psnr", ""),
+                "ssim": result.get("ssim", ""),
+                "lpips": result.get("lpips", ""),
+                "checkpoint_count": len(list(scene_dir.rglob("*.ckpt"))),
+                "render_like_image_count": len(render_like),
+                "train_cmd_exists": str(train_cmd.exists()),
+                "metrics_cmd_exists": str(metrics_cmd.exists()),
+            }
+        )
+    write_csv(REPORT / "SPLATFACTO_W_HISTORICAL_RUN_AUDIT.csv", rows)
+    return rows
+
+
 def external_fairness() -> None:
     repos = {
         "GS-W legacy": WL3DGS / "external_baselines" / "Gaussian-Wild",
@@ -650,13 +720,13 @@ def external_fairness() -> None:
             "exact_commit": repo_info(repos["Splatfacto-W"])["commit"],
             "license": "LICENSE present; not fully legal-audited",
             "local_code_modified": repo_info(repos["Splatfacto-W"])["status"] or "clean/unknown",
-            "split": "custom TSV/adapted frozen split",
-            "full_image_or_half_image": "right-half eval configured",
-            "test_rgb_into_appearance": "held-out image left-half participates during training/eval protocol",
-            "test_time_optimization": "not classical TTO; transductive half-image protocol",
+            "split": "Nerfstudio colmap eval-mode interval/eval-interval 8; not tied to frozen manifest hash in historical artifacts",
+            "full_image_or_half_image": "historical saved configs show eval_right_half=false full-image aggregate metrics; source non-light default has right-half mode but was not used by these saved configs",
+            "test_rgb_into_appearance": "no direct evidence of test RGB fitting; saved configs use_avg_appearance=true average train appearance for eval",
+            "test_time_optimization": "no evidence of test-time optimization in ns-eval logs",
             "strict_main_competitor": "False",
-            "protocol_class": "C",
-            "evidence": "external_baselines/splatfacto-w/splatfactow/splatfactow_config.py:43 sets eval_right_half=True; splatfactow_model.py:1261 applies right-half evaluation; datamanager.py:349 masks eval images during training.",
+            "protocol_class": "D",
+            "evidence": "SPLATFACTO_W_PROTOCOL_AUDIT.md; SPLATFACTO_W_HISTORICAL_RUN_AUDIT.csv shows 12 saved configs with eval_right_half=false, use_avg_appearance=true, eval_mode=interval, eval_interval=8, train_split_fraction=0.9, and zero saved render/GT images for unified re-evaluation.",
         },
         {
             "method": "Luminance-GS",
@@ -710,27 +780,37 @@ def external_fairness() -> None:
 
 def splatfacto_audit() -> None:
     metrics = [r for r in read_csv(EXTERNAL_SUMMARY / "metrics_all_methods.csv") if r.get("method") == "splatfacto_w"]
+    metric_30k = [r for r in metrics if r.get("iterations") == "30000"]
+    historical = splatfacto_historical_run_audit()
+    full_configs = [r for r in historical if r.get("eval_right_half") == "false"]
+    avg_configs = [r for r in historical if r.get("use_avg_appearance") == "true"]
+    render_exports = sum(int(r.get("render_like_image_count") or 0) for r in historical)
     md = [
         "# SPLATFACTO_W_PROTOCOL_AUDIT",
         "",
-        "- Current numeric coverage: `12/12` rows in historical summary.",
+        f"- Current 30k numeric coverage: `{len(metric_30k)}/12` rows in historical summary.",
         "- Protocol decision: `not strict full-image held-out comparable`.",
-        "- Classification: `C. transductive / half-image protocol`.",
+        "- Classification: `D. protocol incompatible with the current strict main table`.",
         "",
         "Evidence:",
         "",
-        "- `external_baselines/splatfacto-w/splatfactow/splatfactow_config.py:43` sets `SplatfactoWModelConfig(eval_right_half=True)` for the active config.",
-        "- `external_baselines/splatfacto-w/splatfactow/splatfactow_model.py:252-255` defines `use_avg_appearance` and `eval_right_half`; `1261-1263` applies hacked right-half evaluation.",
-        "- `external_baselines/splatfacto-w/splatfactow/splatfactow_datamanager.py:349-352` detects eval images during training and masks the right half, which means held-out target images are not absent from training.",
-        "- The model has appearance embeddings and appearance features (`splatfactow_model.py:226-254`, `345-413`, `860-864`, `937-954`).",
+        "- Source defaults are mixed: `external_baselines/splatfacto-w/splatfactow/splatfactow_config.py:43` enables right-half evaluation for the non-light phototourism config, while the light config at `splatfactow_config.py:126-160` uses `FullImageDatamanagerConfig` and `use_avg_appearance=True` without setting `eval_right_half`.",
+        "- The 12 historical 30k saved configs all use `splatfacto-w-light`, `eval_right_half=false`, `use_avg_appearance=true`, `eval_mode=interval`, `eval_interval=8`, `train_split_fraction=0.9`, and `downscale_factor=1`; see `SPLATFACTO_W_HISTORICAL_RUN_AUDIT.csv`.",
+        "- `external_baselines/splatfacto-w/splatfactow/splatfactow_model.py:937-956` uses per-camera appearance when `camera.metadata['cam_idx']` exists, otherwise uses average appearance if `use_avg_appearance=True`. The historical eval logs do not show test-time fitting or test RGB appearance optimization.",
+        "- `splatfactow_model.py:1261-1265` can crop to the right half only when `eval_right_half=True`; the saved historical configs set it to false, so the previous right-half classification is not supported for these 12 rows.",
+        f"- Existing Splatfacto-W outputs contain `{render_exports}` render-like PNG/JPG files across 12 scenes. `ns-eval` wrote aggregate `eval.json` files only, so the requested unified full-image evaluator cannot be run from existing renders.",
+        "- The split is controlled by Nerfstudio's COLMAP dataparser command (`--eval-mode interval --eval-interval 8`) and saved config fields, not by a frozen manifest path/hash in the Splatfacto-W artifacts. Even if the interval likely resembles LLFF hold-8, the current evidence is insufficient to treat the aggregate rows as verified strict-main results.",
         "",
         "Result handling:",
         "",
         "- Move current Splatfacto-W rows out of the strict main table.",
-        "- They may be retained in a secondary conditioned/transductive table.",
+        "- They may be retained only as provisional Nerfstudio-internal aggregate numbers with a clear protocol caveat.",
+        "- A fair Splatfacto-W competitor would require either saved per-view render/GT export from the existing checkpoints followed by the unified evaluator, or a new GPT-approved strict run/export plan. This round did not start that work.",
         "- No retraining was started in this round.",
         "",
-        f"- Historical metric rows found: `{len(metrics)}`.",
+        f"- Historical metric rows found: `{len(metrics)}` total, including `{len(metric_30k)}` 30k rows.",
+        f"- Historical configs with `eval_right_half=false`: `{len(full_configs)}/12`.",
+        f"- Historical configs with `use_avg_appearance=true`: `{len(avg_configs)}/12`.",
     ]
     write_text(REPORT / "SPLATFACTO_W_PROTOCOL_AUDIT.md", "\n".join(md) + "\n")
 
@@ -919,6 +999,9 @@ def baseline_registry() -> None:
         elif klass in {"B", "C"}:
             action = "move to secondary conditioned table"
             valid = "True"
+        elif klass == "D":
+            action = "requires strict render export/re-evaluation"
+            valid = "False"
         elif klass == "E":
             action = "invalid/remove"
             valid = "False"
@@ -969,7 +1052,7 @@ def baseline_registry() -> None:
         "",
         "- Strict main table: retain only class A rows with valid metrics. Currently this means corrected GS-W designated successful rows and verified official class A scenes.",
         "- Legacy GS-W: move to secondary conditioned/non-strict table; use as protocol-risk illustration only.",
-        "- Splatfacto-W: move to secondary transductive/half-image table; do not rank against strict official/GS-W.",
+        "- Splatfacto-W: do not rank against strict official/GS-W. Historical 30k configs are full-image (`eval_right_half=false`) and use average appearance, but only aggregate Nerfstudio `eval.json` exists; strict use requires per-view render/GT export and unified re-evaluation or a GPT-approved strict rerun/export plan.",
         "- Luminance-GS: mark provisional/unresolved; run bounded diagnostics before any 30k rerun.",
         "- WildGaussians: mark invalid/remove current numeric rows due dark/adapter-invalid renders; diagnose wrapper before considering rerun.",
         "- Old official 12-scene rows: class B unless verified by provenance; do not mix with verified strict table.",
@@ -1037,7 +1120,7 @@ def summary_report() -> None:
         f"- GS-W successful-scene mean/median LPIPS: `{mean(lpips):.6f}` / `{median(lpips):.6f}`." if lpips else "- GS-W successful-scene LPIPS: unavailable.",
         f"- Existing official 12-scene classes: A={counts['A']}, B={counts['B']}, C={counts['C']}, D={counts['D']}, E={counts['E']}.",
         f"- Verified official common scenes currently compared: `{len(verified)}`.",
-        "- Splatfacto-W: not strict fair; transductive/right-half protocol.",
+        "- Splatfacto-W: not strict-main usable. Current evidence corrects the earlier half-image claim: saved 12-scene configs are full-image (`eval_right_half=false`) with average appearance, but no per-view render/GT artifacts exist for unified re-evaluation and split provenance is not frozen-manifest verified.",
         "- Luminance-GS: current local env/adapter state invalid; bounded import/log/adapter diagnostics found pycolmap `SceneManager` API mismatch.",
         "- WildGaussians: current numeric rows invalid/remove; bounded reader diagnostics pass, but render/checkpoint/appearance integration remains invalid/dark.",
         "",
@@ -1106,9 +1189,9 @@ def completion_gap_audit() -> None:
         {
             "requirement": "splatfacto_w_special_audit",
             "status": "complete_for_current_historical_results",
-            "evidence": "SPLATFACTO_W_PROTOCOL_AUDIT.md records right-half/transductive protocol evidence.",
-            "missing_or_risk": "No strict full-image Splatfacto-W rerun was performed, by instruction.",
-            "next_action": "Move current Splatfacto-W results to secondary transductive table.",
+            "evidence": "SPLATFACTO_W_PROTOCOL_AUDIT.md and SPLATFACTO_W_HISTORICAL_RUN_AUDIT.csv record saved full-image average-appearance configs, missing render/GT exports, and non-manifest split provenance.",
+            "missing_or_risk": "No unified re-evaluation from existing renders is possible because historical outputs contain aggregate eval.json only. No strict Splatfacto-W rerun/export was performed, by instruction.",
+            "next_action": "Keep current Splatfacto-W numbers out of the strict main table; ask GPT whether to export per-view renders from checkpoints or schedule a strict rerun/export plan.",
         },
         {
             "requirement": "luminance_gs_bounded_diagnostics",
@@ -1141,8 +1224,8 @@ def completion_gap_audit() -> None:
         f"- Corrected GS-W strict success coverage: `{len(successes)}/12`.",
         f"- Corrected GS-W strict pending/non-success rows: `{len(pending)}/12`.",
         f"- Official class counts: A={official_counts['A']}, B={official_counts['B']}, C={official_counts['C']}, D={official_counts['D']}, E={official_counts['E']}.",
-        "- Stop condition from GPT is not fully satisfied because the remaining GS-W long run and bounded Luminance/Wild diagnostics are not executed yet.",
-        "- The package is still useful as a review gate: it freezes protocol, identifies invalid baselines and provides a guarded runner/evaluator for the next approved step.",
+        "- Stop condition from GPT is not fully satisfied only for corrected GS-W 12-scene coverage: 9 pending strict 30k runs still require GPT approval. Bounded Luminance-GS and WildGaussians diagnostics have been executed and recorded.",
+        "- The package is still useful as a review gate: it freezes protocol, identifies invalid/provisional baselines and provides a guarded runner/evaluator for the next approved step.",
         "",
         "| requirement | status | next action |",
         "|---|---|---|",

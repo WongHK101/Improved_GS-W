@@ -1,33 +1,22 @@
 ## git status --short --branch
 ## main...origin/main
  M reports/baseline_completion/BASELINE_COMPLETION_AUDIT_SUMMARY.md
+ M reports/baseline_completion/BASELINE_TABLE_REVISION_PLAN.md
  M reports/baseline_completion/COMMIT_HISTORY.md
  M reports/baseline_completion/COMPLETION_GAP_AUDIT.csv
  M reports/baseline_completion/COMPLETION_GAP_AUDIT.md
- M reports/baseline_completion/EXTERNAL_BASELINE_DIAGNOSTIC_PLAN.csv
- M reports/baseline_completion/EXTERNAL_BASELINE_DIAGNOSTIC_PLAN.md
  M reports/baseline_completion/EXTERNAL_BASELINE_FAIRNESS_AUDIT.md
  M reports/baseline_completion/EXTERNAL_BASELINE_FAIRNESS_MATRIX.csv
  M reports/baseline_completion/EXTERNAL_BASELINE_RESULT_REGISTRY.csv
  M reports/baseline_completion/GSW_12SCENE_CODE_FREEZE_AUDIT.md
- M reports/baseline_completion/LUMINANCE_GS_PROTOCOL_AUDIT.md
- M reports/baseline_completion/LUMINANCE_GS_RERUN_RECOMMENDATION.md
  M reports/baseline_completion/PUSH_STATUS.md
  M reports/baseline_completion/REPO_STATUS.txt
- M reports/baseline_completion/WILDGAUSSIANS_BLACK_RENDER_DIAGNOSIS.md
- M reports/baseline_completion/WILDGAUSSIANS_PROTOCOL_AUDIT.md
+ M reports/baseline_completion/SPLATFACTO_W_PROTOCOL_AUDIT.md
  M tools/baseline_completion/baseline_completion_audit.py
-?? reports/baseline_completion/EXTERNAL_BASELINE_BOUNDED_DIAGNOSTICS.md
-?? reports/baseline_completion/EXTERNAL_BASELINE_CODE_EVIDENCE.csv
-?? reports/baseline_completion/EXTERNAL_BASELINE_SMOKE_RESULTS.csv
-?? reports/baseline_completion/LUMINANCE_GS_BOUNDED_DIAGNOSTIC_ADAPTER.csv
-?? reports/baseline_completion/LUMINANCE_GS_BOUNDED_DIAGNOSTIC_RUNS.csv
-?? reports/baseline_completion/WILDGAUSSIANS_BOUNDED_DIAGNOSTIC_ADAPTER.csv
-?? reports/baseline_completion/WILDGAUSSIANS_BOUNDED_DIAGNOSTIC_RUNS.csv
-?? tools/baseline_completion/external_bounded_diagnostics.py
+?? reports/baseline_completion/SPLATFACTO_W_HISTORICAL_RUN_AUDIT.csv
 
 ## git rev-parse HEAD
-2a3611392301136742c91718345881bda0202a45
+274e54af10c659d9a2e37e42b105fcc07385a15a
 
 ## origin/main...main
 0	0
