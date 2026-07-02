@@ -1,14 +1,21 @@
 # GSW_12SCENE_EXECUTION_PLAN
 
-Dry-run command plan only. These commands have not been executed by this audit package.
+This is a dry-run execution plan. It does not prove that the remaining runs were executed.
 
-- Pending corrected GS-W strict scenes: `9`.
-- Execution root: `G:\WL3DGS\3dgs_runs\gsw_strict_12scene_single_run_20260702`.
-- Guarded runner: `tools/baseline_completion/strict_12scene_runner.py`.
-- Approval token required for execution: `GPT_APPROVED_12SCENE_GSW_30K=1`.
-- Training uses resolution=1, iterations=30000, seed from `safe_state`, frozen manifest split, strict_intrinsic test appearance, no train-time test evaluation and no metrics_half.
+- Pending scenes: `9`
+- Execution root: `G:\WL3DGS\3dgs_runs\gsw_strict_12scene_single_run_20260702`
+- Pilot root: `G:\WL3DGS\3dgs_runs\gsw_strict_12scene_pilots_20260702`
+- Approval token required for execution: `GPT_APPROVED_12SCENE_GSW_30K`
+- Commands are serial; no parallel `conda run` jobs are launched by this runner.
+- Training uses `--test_iterations 1000000`, `--test_appearance_mode strict_intrinsic`, full-image rendering and the frozen manifest path from the registry.
 
 ## web_doss_images
+
+### pilot_5000
+
+```powershell
+conda run -n 3dgs --no-capture-output python "G:\WL3DGS\Improved_GS-W\train.py" --source_path "G:\WL3DGS\3dgs_undistorted\max1600\web_doss_images" --scene_name web_doss_images --model_path "G:\WL3DGS\3dgs_runs\gsw_strict_12scene_pilots_20260702\web_doss_images\iter_5000" --resolution 1 --iterations 5000 --split_mode frozen_manifest --split_file "G:\WL3DGS\Improved_GS-W\reports\two_scene_selection\generated_manifests\web_doss_images_SPLIT.json" --test_appearance_mode strict_intrinsic --test_iterations 1000000 --save_iterations 5000 --disable_render_after_train --disable_metrics_after_train --disable_train_temp_images --quiet
+```
 
 ### train_30k
 
@@ -22,13 +29,19 @@ conda run -n 3dgs --no-capture-output python "G:\WL3DGS\Improved_GS-W\train.py" 
 conda run -n 3dgs --no-capture-output python "G:\WL3DGS\Improved_GS-W\render.py" --source_path "G:\WL3DGS\3dgs_undistorted\max1600\web_doss_images" --scene_name web_doss_images --model_path "G:\WL3DGS\3dgs_runs\gsw_strict_12scene_single_run_20260702\web_doss_images" --resolution 1 --iteration 30000 --split_mode frozen_manifest --split_file "G:\WL3DGS\Improved_GS-W\reports\two_scene_selection\generated_manifests\web_doss_images_SPLIT.json" --test_appearance_mode strict_intrinsic --render_output_tag strict_intrinsic --skip_train --quiet
 ```
 
-### unified_full_image_eval
+### unified_eval
 
 ```powershell
 conda run -n 3dgs --no-capture-output python "G:\WL3DGS\Improved_GS-W\tools\baseline_completion\unified_full_image_eval.py" --label "web_doss_images-pending-single-run=gsw_strict_intrinsic=web_doss_images=G:\WL3DGS\3dgs_runs\gsw_strict_12scene_single_run_20260702\web_doss_images\test\ours_30000_strict_intrinsic=G:\WL3DGS\Improved_GS-W\reports\two_scene_selection\generated_manifests\web_doss_images_SPLIT.json" --results-csv "G:\WL3DGS\Improved_GS-W\reports\baseline_completion\runner_eval_results\web_doss_images_summary.csv" --per-view-csv "G:\WL3DGS\Improved_GS-W\reports\baseline_completion\runner_eval_results\web_doss_images_per_view.csv"
 ```
 
 ## web_Trento_Duomo_images
+
+### pilot_5000
+
+```powershell
+conda run -n 3dgs --no-capture-output python "G:\WL3DGS\Improved_GS-W\train.py" --source_path "G:\WL3DGS\3dgs_undistorted\max1600\web_Trento_Duomo_images" --scene_name web_Trento_Duomo_images --model_path "G:\WL3DGS\3dgs_runs\gsw_strict_12scene_pilots_20260702\web_Trento_Duomo_images\iter_5000" --resolution 1 --iterations 5000 --split_mode frozen_manifest --split_file "G:\WL3DGS\Improved_GS-W\reports\two_scene_selection\generated_manifests\web_Trento_Duomo_images_SPLIT.json" --test_appearance_mode strict_intrinsic --test_iterations 1000000 --save_iterations 5000 --disable_render_after_train --disable_metrics_after_train --disable_train_temp_images --quiet
+```
 
 ### train_30k
 
@@ -42,13 +55,19 @@ conda run -n 3dgs --no-capture-output python "G:\WL3DGS\Improved_GS-W\train.py" 
 conda run -n 3dgs --no-capture-output python "G:\WL3DGS\Improved_GS-W\render.py" --source_path "G:\WL3DGS\3dgs_undistorted\max1600\web_Trento_Duomo_images" --scene_name web_Trento_Duomo_images --model_path "G:\WL3DGS\3dgs_runs\gsw_strict_12scene_single_run_20260702\web_Trento_Duomo_images" --resolution 1 --iteration 30000 --split_mode frozen_manifest --split_file "G:\WL3DGS\Improved_GS-W\reports\two_scene_selection\generated_manifests\web_Trento_Duomo_images_SPLIT.json" --test_appearance_mode strict_intrinsic --render_output_tag strict_intrinsic --skip_train --quiet
 ```
 
-### unified_full_image_eval
+### unified_eval
 
 ```powershell
 conda run -n 3dgs --no-capture-output python "G:\WL3DGS\Improved_GS-W\tools\baseline_completion\unified_full_image_eval.py" --label "web_Trento_Duomo_images-pending-single-run=gsw_strict_intrinsic=web_Trento_Duomo_images=G:\WL3DGS\3dgs_runs\gsw_strict_12scene_single_run_20260702\web_Trento_Duomo_images\test\ours_30000_strict_intrinsic=G:\WL3DGS\Improved_GS-W\reports\two_scene_selection\generated_manifests\web_Trento_Duomo_images_SPLIT.json" --results-csv "G:\WL3DGS\Improved_GS-W\reports\baseline_completion\runner_eval_results\web_Trento_Duomo_images_summary.csv" --per-view-csv "G:\WL3DGS\Improved_GS-W\reports\baseline_completion\runner_eval_results\web_Trento_Duomo_images_per_view.csv"
 ```
 
 ## self_double-action_press
+
+### pilot_3000
+
+```powershell
+conda run -n 3dgs --no-capture-output python "G:\WL3DGS\Improved_GS-W\train.py" --source_path "G:\WL3DGS\3dgs_undistorted\max1600\self_double-action_press" --scene_name self_double-action_press --model_path "G:\WL3DGS\3dgs_runs\gsw_strict_12scene_pilots_20260702\self_double-action_press\iter_3000" --resolution 1 --iterations 3000 --split_mode frozen_manifest --split_file "G:\WL3DGS\Improved_GS-W\reports\two_scene_selection\generated_manifests\self_double-action_press_SPLIT.json" --test_appearance_mode strict_intrinsic --test_iterations 1000000 --save_iterations 3000 --disable_render_after_train --disable_metrics_after_train --disable_train_temp_images --quiet
+```
 
 ### train_30k
 
@@ -62,13 +81,19 @@ conda run -n 3dgs --no-capture-output python "G:\WL3DGS\Improved_GS-W\train.py" 
 conda run -n 3dgs --no-capture-output python "G:\WL3DGS\Improved_GS-W\render.py" --source_path "G:\WL3DGS\3dgs_undistorted\max1600\self_double-action_press" --scene_name self_double-action_press --model_path "G:\WL3DGS\3dgs_runs\gsw_strict_12scene_single_run_20260702\self_double-action_press" --resolution 1 --iteration 30000 --split_mode frozen_manifest --split_file "G:\WL3DGS\Improved_GS-W\reports\two_scene_selection\generated_manifests\self_double-action_press_SPLIT.json" --test_appearance_mode strict_intrinsic --render_output_tag strict_intrinsic --skip_train --quiet
 ```
 
-### unified_full_image_eval
+### unified_eval
 
 ```powershell
 conda run -n 3dgs --no-capture-output python "G:\WL3DGS\Improved_GS-W\tools\baseline_completion\unified_full_image_eval.py" --label "self_double-action_press-pending-single-run=gsw_strict_intrinsic=self_double-action_press=G:\WL3DGS\3dgs_runs\gsw_strict_12scene_single_run_20260702\self_double-action_press\test\ours_30000_strict_intrinsic=G:\WL3DGS\Improved_GS-W\reports\two_scene_selection\generated_manifests\self_double-action_press_SPLIT.json" --results-csv "G:\WL3DGS\Improved_GS-W\reports\baseline_completion\runner_eval_results\self_double-action_press_summary.csv" --per-view-csv "G:\WL3DGS\Improved_GS-W\reports\baseline_completion\runner_eval_results\self_double-action_press_per_view.csv"
 ```
 
 ## web_cyprus_images
+
+### pilot_3000
+
+```powershell
+conda run -n 3dgs --no-capture-output python "G:\WL3DGS\Improved_GS-W\train.py" --source_path "G:\WL3DGS\3dgs_undistorted\max1600\web_cyprus_images" --scene_name web_cyprus_images --model_path "G:\WL3DGS\3dgs_runs\gsw_strict_12scene_pilots_20260702\web_cyprus_images\iter_3000" --resolution 1 --iterations 3000 --split_mode frozen_manifest --split_file "G:\WL3DGS\Improved_GS-W\reports\two_scene_selection\generated_manifests\web_cyprus_images_SPLIT.json" --test_appearance_mode strict_intrinsic --test_iterations 1000000 --save_iterations 3000 --disable_render_after_train --disable_metrics_after_train --disable_train_temp_images --quiet
+```
 
 ### train_30k
 
@@ -82,13 +107,19 @@ conda run -n 3dgs --no-capture-output python "G:\WL3DGS\Improved_GS-W\train.py" 
 conda run -n 3dgs --no-capture-output python "G:\WL3DGS\Improved_GS-W\render.py" --source_path "G:\WL3DGS\3dgs_undistorted\max1600\web_cyprus_images" --scene_name web_cyprus_images --model_path "G:\WL3DGS\3dgs_runs\gsw_strict_12scene_single_run_20260702\web_cyprus_images" --resolution 1 --iteration 30000 --split_mode frozen_manifest --split_file "G:\WL3DGS\Improved_GS-W\reports\two_scene_selection\generated_manifests\web_cyprus_images_SPLIT.json" --test_appearance_mode strict_intrinsic --render_output_tag strict_intrinsic --skip_train --quiet
 ```
 
-### unified_full_image_eval
+### unified_eval
 
 ```powershell
 conda run -n 3dgs --no-capture-output python "G:\WL3DGS\Improved_GS-W\tools\baseline_completion\unified_full_image_eval.py" --label "web_cyprus_images-pending-single-run=gsw_strict_intrinsic=web_cyprus_images=G:\WL3DGS\3dgs_runs\gsw_strict_12scene_single_run_20260702\web_cyprus_images\test\ours_30000_strict_intrinsic=G:\WL3DGS\Improved_GS-W\reports\two_scene_selection\generated_manifests\web_cyprus_images_SPLIT.json" --results-csv "G:\WL3DGS\Improved_GS-W\reports\baseline_completion\runner_eval_results\web_cyprus_images_summary.csv" --per-view-csv "G:\WL3DGS\Improved_GS-W\reports\baseline_completion\runner_eval_results\web_cyprus_images_per_view.csv"
 ```
 
 ## self_CLG899III_Wheel_Loader
+
+### pilot_3000
+
+```powershell
+conda run -n 3dgs --no-capture-output python "G:\WL3DGS\Improved_GS-W\train.py" --source_path "G:\WL3DGS\3dgs_undistorted\max1600\self_CLG899III_Wheel_Loader" --scene_name self_CLG899III_Wheel_Loader --model_path "G:\WL3DGS\3dgs_runs\gsw_strict_12scene_pilots_20260702\self_CLG899III_Wheel_Loader\iter_3000" --resolution 1 --iterations 3000 --split_mode frozen_manifest --split_file "G:\WL3DGS\Improved_GS-W\reports\two_scene_selection\generated_manifests\self_CLG899III_Wheel_Loader_SPLIT.json" --test_appearance_mode strict_intrinsic --test_iterations 1000000 --save_iterations 3000 --disable_render_after_train --disable_metrics_after_train --disable_train_temp_images --quiet
+```
 
 ### train_30k
 
@@ -102,13 +133,19 @@ conda run -n 3dgs --no-capture-output python "G:\WL3DGS\Improved_GS-W\train.py" 
 conda run -n 3dgs --no-capture-output python "G:\WL3DGS\Improved_GS-W\render.py" --source_path "G:\WL3DGS\3dgs_undistorted\max1600\self_CLG899III_Wheel_Loader" --scene_name self_CLG899III_Wheel_Loader --model_path "G:\WL3DGS\3dgs_runs\gsw_strict_12scene_single_run_20260702\self_CLG899III_Wheel_Loader" --resolution 1 --iteration 30000 --split_mode frozen_manifest --split_file "G:\WL3DGS\Improved_GS-W\reports\two_scene_selection\generated_manifests\self_CLG899III_Wheel_Loader_SPLIT.json" --test_appearance_mode strict_intrinsic --render_output_tag strict_intrinsic --skip_train --quiet
 ```
 
-### unified_full_image_eval
+### unified_eval
 
 ```powershell
 conda run -n 3dgs --no-capture-output python "G:\WL3DGS\Improved_GS-W\tools\baseline_completion\unified_full_image_eval.py" --label "self_CLG899III_Wheel_Loader-pending-single-run=gsw_strict_intrinsic=self_CLG899III_Wheel_Loader=G:\WL3DGS\3dgs_runs\gsw_strict_12scene_single_run_20260702\self_CLG899III_Wheel_Loader\test\ours_30000_strict_intrinsic=G:\WL3DGS\Improved_GS-W\reports\two_scene_selection\generated_manifests\self_CLG899III_Wheel_Loader_SPLIT.json" --results-csv "G:\WL3DGS\Improved_GS-W\reports\baseline_completion\runner_eval_results\self_CLG899III_Wheel_Loader_summary.csv" --per-view-csv "G:\WL3DGS\Improved_GS-W\reports\baseline_completion\runner_eval_results\self_CLG899III_Wheel_Loader_per_view.csv"
 ```
 
 ## web_metopa_images
+
+### pilot_3000
+
+```powershell
+conda run -n 3dgs --no-capture-output python "G:\WL3DGS\Improved_GS-W\train.py" --source_path "G:\WL3DGS\3dgs_undistorted\max1600\web_metopa_images" --scene_name web_metopa_images --model_path "G:\WL3DGS\3dgs_runs\gsw_strict_12scene_pilots_20260702\web_metopa_images\iter_3000" --resolution 1 --iterations 3000 --split_mode frozen_manifest --split_file "G:\WL3DGS\Improved_GS-W\reports\two_scene_selection\generated_manifests\web_metopa_images_SPLIT.json" --test_appearance_mode strict_intrinsic --test_iterations 1000000 --save_iterations 3000 --disable_render_after_train --disable_metrics_after_train --disable_train_temp_images --quiet
+```
 
 ### train_30k
 
@@ -122,13 +159,19 @@ conda run -n 3dgs --no-capture-output python "G:\WL3DGS\Improved_GS-W\train.py" 
 conda run -n 3dgs --no-capture-output python "G:\WL3DGS\Improved_GS-W\render.py" --source_path "G:\WL3DGS\3dgs_undistorted\max1600\web_metopa_images" --scene_name web_metopa_images --model_path "G:\WL3DGS\3dgs_runs\gsw_strict_12scene_single_run_20260702\web_metopa_images" --resolution 1 --iteration 30000 --split_mode frozen_manifest --split_file "G:\WL3DGS\Improved_GS-W\reports\two_scene_selection\generated_manifests\web_metopa_images_SPLIT.json" --test_appearance_mode strict_intrinsic --render_output_tag strict_intrinsic --skip_train --quiet
 ```
 
-### unified_full_image_eval
+### unified_eval
 
 ```powershell
 conda run -n 3dgs --no-capture-output python "G:\WL3DGS\Improved_GS-W\tools\baseline_completion\unified_full_image_eval.py" --label "web_metopa_images-pending-single-run=gsw_strict_intrinsic=web_metopa_images=G:\WL3DGS\3dgs_runs\gsw_strict_12scene_single_run_20260702\web_metopa_images\test\ours_30000_strict_intrinsic=G:\WL3DGS\Improved_GS-W\reports\two_scene_selection\generated_manifests\web_metopa_images_SPLIT.json" --results-csv "G:\WL3DGS\Improved_GS-W\reports\baseline_completion\runner_eval_results\web_metopa_images_summary.csv" --per-view-csv "G:\WL3DGS\Improved_GS-W\reports\baseline_completion\runner_eval_results\web_metopa_images_per_view.csv"
 ```
 
 ## web_statue_images
+
+### pilot_3000
+
+```powershell
+conda run -n 3dgs --no-capture-output python "G:\WL3DGS\Improved_GS-W\train.py" --source_path "G:\WL3DGS\3dgs_undistorted\max1600\web_statue_images" --scene_name web_statue_images --model_path "G:\WL3DGS\3dgs_runs\gsw_strict_12scene_pilots_20260702\web_statue_images\iter_3000" --resolution 1 --iterations 3000 --split_mode frozen_manifest --split_file "G:\WL3DGS\Improved_GS-W\reports\two_scene_selection\generated_manifests\web_statue_images_SPLIT.json" --test_appearance_mode strict_intrinsic --test_iterations 1000000 --save_iterations 3000 --disable_render_after_train --disable_metrics_after_train --disable_train_temp_images --quiet
+```
 
 ### train_30k
 
@@ -142,13 +185,19 @@ conda run -n 3dgs --no-capture-output python "G:\WL3DGS\Improved_GS-W\train.py" 
 conda run -n 3dgs --no-capture-output python "G:\WL3DGS\Improved_GS-W\render.py" --source_path "G:\WL3DGS\3dgs_undistorted\max1600\web_statue_images" --scene_name web_statue_images --model_path "G:\WL3DGS\3dgs_runs\gsw_strict_12scene_single_run_20260702\web_statue_images" --resolution 1 --iteration 30000 --split_mode frozen_manifest --split_file "G:\WL3DGS\Improved_GS-W\reports\two_scene_selection\generated_manifests\web_statue_images_SPLIT.json" --test_appearance_mode strict_intrinsic --render_output_tag strict_intrinsic --skip_train --quiet
 ```
 
-### unified_full_image_eval
+### unified_eval
 
 ```powershell
 conda run -n 3dgs --no-capture-output python "G:\WL3DGS\Improved_GS-W\tools\baseline_completion\unified_full_image_eval.py" --label "web_statue_images-pending-single-run=gsw_strict_intrinsic=web_statue_images=G:\WL3DGS\3dgs_runs\gsw_strict_12scene_single_run_20260702\web_statue_images\test\ours_30000_strict_intrinsic=G:\WL3DGS\Improved_GS-W\reports\two_scene_selection\generated_manifests\web_statue_images_SPLIT.json" --results-csv "G:\WL3DGS\Improved_GS-W\reports\baseline_completion\runner_eval_results\web_statue_images_summary.csv" --per-view-csv "G:\WL3DGS\Improved_GS-W\reports\baseline_completion\runner_eval_results\web_statue_images_per_view.csv"
 ```
 
 ## web_Baalshamin_images
+
+### pilot_1000
+
+```powershell
+conda run -n 3dgs --no-capture-output python "G:\WL3DGS\Improved_GS-W\train.py" --source_path "G:\WL3DGS\3dgs_undistorted\max1600\web_Baalshamin_images" --scene_name web_Baalshamin_images --model_path "G:\WL3DGS\3dgs_runs\gsw_strict_12scene_pilots_20260702\web_Baalshamin_images\iter_1000" --resolution 1 --iterations 1000 --split_mode frozen_manifest --split_file "G:\WL3DGS\Improved_GS-W\reports\two_scene_selection\generated_manifests\web_Baalshamin_images_SPLIT.json" --test_appearance_mode strict_intrinsic --test_iterations 1000000 --save_iterations 1000 --disable_render_after_train --disable_metrics_after_train --disable_train_temp_images --quiet
+```
 
 ### train_30k
 
@@ -162,13 +211,19 @@ conda run -n 3dgs --no-capture-output python "G:\WL3DGS\Improved_GS-W\train.py" 
 conda run -n 3dgs --no-capture-output python "G:\WL3DGS\Improved_GS-W\render.py" --source_path "G:\WL3DGS\3dgs_undistorted\max1600\web_Baalshamin_images" --scene_name web_Baalshamin_images --model_path "G:\WL3DGS\3dgs_runs\gsw_strict_12scene_single_run_20260702\web_Baalshamin_images" --resolution 1 --iteration 30000 --split_mode frozen_manifest --split_file "G:\WL3DGS\Improved_GS-W\reports\two_scene_selection\generated_manifests\web_Baalshamin_images_SPLIT.json" --test_appearance_mode strict_intrinsic --render_output_tag strict_intrinsic --skip_train --quiet
 ```
 
-### unified_full_image_eval
+### unified_eval
 
 ```powershell
 conda run -n 3dgs --no-capture-output python "G:\WL3DGS\Improved_GS-W\tools\baseline_completion\unified_full_image_eval.py" --label "web_Baalshamin_images-pending-single-run=gsw_strict_intrinsic=web_Baalshamin_images=G:\WL3DGS\3dgs_runs\gsw_strict_12scene_single_run_20260702\web_Baalshamin_images\test\ours_30000_strict_intrinsic=G:\WL3DGS\Improved_GS-W\reports\two_scene_selection\generated_manifests\web_Baalshamin_images_SPLIT.json" --results-csv "G:\WL3DGS\Improved_GS-W\reports\baseline_completion\runner_eval_results\web_Baalshamin_images_summary.csv" --per-view-csv "G:\WL3DGS\Improved_GS-W\reports\baseline_completion\runner_eval_results\web_Baalshamin_images_per_view.csv"
 ```
 
 ## self_3000t_Press
+
+### pilot_1000
+
+```powershell
+conda run -n 3dgs --no-capture-output python "G:\WL3DGS\Improved_GS-W\train.py" --source_path "G:\WL3DGS\3dgs_undistorted\max1600\self_3000t_Press" --scene_name self_3000t_Press --model_path "G:\WL3DGS\3dgs_runs\gsw_strict_12scene_pilots_20260702\self_3000t_Press\iter_1000" --resolution 1 --iterations 1000 --split_mode frozen_manifest --split_file "G:\WL3DGS\Improved_GS-W\reports\two_scene_selection\generated_manifests\self_3000t_Press_SPLIT.json" --test_appearance_mode strict_intrinsic --test_iterations 1000000 --save_iterations 1000 --disable_render_after_train --disable_metrics_after_train --disable_train_temp_images --quiet
+```
 
 ### train_30k
 
@@ -182,7 +237,7 @@ conda run -n 3dgs --no-capture-output python "G:\WL3DGS\Improved_GS-W\train.py" 
 conda run -n 3dgs --no-capture-output python "G:\WL3DGS\Improved_GS-W\render.py" --source_path "G:\WL3DGS\3dgs_undistorted\max1600\self_3000t_Press" --scene_name self_3000t_Press --model_path "G:\WL3DGS\3dgs_runs\gsw_strict_12scene_single_run_20260702\self_3000t_Press" --resolution 1 --iteration 30000 --split_mode frozen_manifest --split_file "G:\WL3DGS\Improved_GS-W\reports\two_scene_selection\generated_manifests\self_3000t_Press_SPLIT.json" --test_appearance_mode strict_intrinsic --render_output_tag strict_intrinsic --skip_train --quiet
 ```
 
-### unified_full_image_eval
+### unified_eval
 
 ```powershell
 conda run -n 3dgs --no-capture-output python "G:\WL3DGS\Improved_GS-W\tools\baseline_completion\unified_full_image_eval.py" --label "self_3000t_Press-pending-single-run=gsw_strict_intrinsic=self_3000t_Press=G:\WL3DGS\3dgs_runs\gsw_strict_12scene_single_run_20260702\self_3000t_Press\test\ours_30000_strict_intrinsic=G:\WL3DGS\Improved_GS-W\reports\two_scene_selection\generated_manifests\self_3000t_Press_SPLIT.json" --results-csv "G:\WL3DGS\Improved_GS-W\reports\baseline_completion\runner_eval_results\self_3000t_Press_summary.csv" --per-view-csv "G:\WL3DGS\Improved_GS-W\reports\baseline_completion\runner_eval_results\self_3000t_Press_per_view.csv"

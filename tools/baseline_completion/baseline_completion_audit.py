@@ -9,6 +9,7 @@ import math
 import os
 import shutil
 import subprocess
+import sys
 from datetime import datetime
 from pathlib import Path
 from statistics import mean, median
@@ -1418,6 +1419,11 @@ def generate() -> None:
     ensure_dirs()
     code_freeze_audit()
     gsw_registry_and_results()
+    if str(REPO) not in sys.path:
+        sys.path.insert(0, str(REPO))
+    from tools.baseline_completion import canonical_split_hash_audit
+
+    canonical_split_hash_audit.generate(REPORT, REPORT / "GSW_12SCENE_RUN_REGISTRY.csv")
     official_audit()
     gsw_vs_official()
     external_fairness()
